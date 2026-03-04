@@ -32,6 +32,7 @@ const dashboardRoutes = require("./routes/job-portal-route/dashboardRoute.js");
 
 // lead-portal k liye
 const productRoutes = require("./routes/lead-portal-route/productRoute.js");
+const leadRoutes = require("./routes/lead-portal-route/leadRoute.js");
 
 const swaggerSpec = require("./swagger");
 const { initSocket } = require("./socketHelpers.js"); // ✅ import only initSocket
@@ -83,6 +84,7 @@ app.use("/api/dashboard", dashboardRoutes);
 
 // lead-portal k liye
 app.use("/api/product", productRoutes);
+app.use("/api/lead", leadRoutes)
 
 // Test route
 app.get("/", (req, res) => {

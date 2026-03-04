@@ -7,6 +7,7 @@ import axios from "axios"
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
+import { socket } from "@/socket/socket";
 
 
 const RelieveEmployeeCard = ({ onClose, employeeId, setRelieveEmployeeId, setEmployeeListRefresh }) => {
@@ -53,6 +54,8 @@ const RelieveEmployeeCard = ({ onClose, employeeId, setRelieveEmployeeId, setEmp
             console.log(res)
 
             if (res?.data?.message === "Employee relieved successfully") {
+                socket.emit("addEmployeeRefresh");
+                socket.emit("addRelieveRefresh", employeeId);
                 toast({
                     title: "Employee Relieved",
                     description: "Employee has been permanently Relieved",
@@ -105,7 +108,7 @@ const RelieveEmployeeCard = ({ onClose, employeeId, setRelieveEmployeeId, setEmp
                 <div className="space-y-1">
                     <Label>Remarks</Label>
                     <Textarea
-                        placeholder="Reason for relieving (optional)"
+                        placeholder="Reason for relieving"
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
                         className="w-full"
@@ -114,12 +117,13 @@ const RelieveEmployeeCard = ({ onClose, employeeId, setRelieveEmployeeId, setEmp
 
                 {/* Footer Buttons */}
                 <div className="flex justify-end gap-3 pt-3">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button type="button" variant="outline" onClick={onClose}>
                         Cancel
                     </Button>
                   <Button
+                  type="submit"
   variant="destructive"
-  disabled={isLoading}
+  disabled={isLoading || !relievingDate || !remarks}
   onClick={handleSubmit}
 >
   {isLoading ? (

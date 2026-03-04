@@ -20,6 +20,7 @@ import { TaskFormData, TaskFormModalProps } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getProjects } from "@/redux-toolkit/slice/task/projectSlice";
 import { getManagers } from "@/redux-toolkit/slice/task/taskManagerSlice";
+import { socket } from "@/socket/socket";
 
 const TaskForm: React.FC<TaskFormModalProps> = ({
   isOpen,
@@ -51,6 +52,21 @@ const TaskForm: React.FC<TaskFormModalProps> = ({
   const dispatch = useAppDispatch();
   const projects = useAppSelector((state) => state.project.projects);
   const managers = useAppSelector((state) => state.manager.managers);
+
+  useEffect(() => {
+    socket.on("getProjectRefresh", () => {
+      console.log("getProjectRefresh");
+      setProjectListRefresh(true);
+    });
+    socket.on("getEmployeeRefresh", () => {
+      setManagerRefresh(true);
+    });
+
+    return () => {
+      socket.off("getProjectRefresh");
+      socket.off("getEmployeeRefresh");
+    };
+  }, []);
 
   const handleScroll = () => {
     const el = formRef.current;
@@ -115,6 +131,7 @@ const TaskForm: React.FC<TaskFormModalProps> = ({
 
       if (res.status === 200 || res.status === 201) {
         setTaskListRefresh(true);
+        socket.emit("addTaskRefresh");
         toast({
           title: isEdit ? "Update Task Successfully" : "Add Task Successfully",
           description: res.data.message,
@@ -152,7 +169,7 @@ const TaskForm: React.FC<TaskFormModalProps> = ({
   const handleGetManager = async () => {
     try {
       const res = await getTaskManager(user?._id, user?.companyId?._id || user?.createdBy?._id);
-      if (res.status === 200) dispatch(getManagers(res.data));
+      if (res.status === 200) { dispatch(getManagers(res.data)); setManagerRefresh(false); }
     } catch (err: any) {
       toast({ title: "Error", description: err.response?.data?.message || "Failed to load managers" });
     }
@@ -380,6 +397,11 @@ const TaskForm: React.FC<TaskFormModalProps> = ({
                         </SelectContent>
                       </>
                     )}
+                    {
+                      managers?.length===0 && <>
+                      <Button type="button" onClick={() => setIsManagerFormOpen(true)} className="w-[130px] h-[28px]">+ Add Manager</Button>
+                      </>
+                    }
 
                   </Select>
                 </div>

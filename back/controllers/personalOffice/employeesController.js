@@ -128,6 +128,7 @@ const updateEmployeeStatus = async (req, res) => {
     if (!employee) return res.status(404).json({ message: "Employee Not Found." });
 
     employee.status = status;
+    employee.relievingDate = null;
     employee.save();
     res.status(200).json({ message: "Employee Status Active Successfully." });
 

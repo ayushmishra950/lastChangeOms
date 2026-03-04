@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import {getEmployees, getAttendancebyday, updateAttendancebyday} from "@/services/Service";
 import { Loader2 } from "lucide-react";
 import { useAppSelector } from "@/redux-toolkit/hooks/hook";
+import { socket } from "@/socket/socket";
 
 type Employee = {
   id: string;
@@ -50,6 +51,7 @@ const [endTime, setEndTime] = useState("");
     const res = await updateAttendancebyday(obj);
     console.log(res);
     if(res.status===200){
+      socket.emit("addAttendanceRefresh");
         toast({title:"Updated Attendance.", description:res.data?.message});
     }
   }

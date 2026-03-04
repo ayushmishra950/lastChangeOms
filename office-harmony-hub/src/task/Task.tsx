@@ -23,6 +23,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getEmployeeList } from "@/redux-toolkit/slice/allPage/userSlice";
 import { getTasks } from "@/redux-toolkit/slice/task/taskSlice";
+import { socket } from "@/socket/socket";
+import { EmployeeFormDialog } from "@/Forms/EmployeeFormDialog"
 
 interface TaskItem {
   id: number;
@@ -57,6 +59,8 @@ const Task: React.FC = () => {
   const { notifications, markAsRead, deleteNotification } = useNotifications();
     const [subTaskListRefresh, setSubTaskListRefresh] = useState(false);
     const[subTaskOpenForm, setSubTaskOpenForm] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+   const [employeeListRefresh, setEmployeeListRefresh] = useState(false);
     const[taskId, setTaskId] = useState("");
       // const [employeeList, setEmployeeList] = useState<any[]>([]);
       const dispatch = useAppDispatch();
@@ -80,13 +84,29 @@ const Task: React.FC = () => {
     return matchesProject && matchesSearch && matchesStatus;
   });
 
+   useEffect(() => {
+          socket.on("getEmployeeRefresh", () => {
+              console.log("getEmployeeRefresh");
+              setEmployeeListRefresh(true);
+          });
+           socket.on("getTaskRefresh", () => {
+              console.log("getTaskRefresh");
+              setTaskListRefresh(true);
+          });
   
+          return () => {
+              socket.off("getEmployeeRefresh");
+              socket.off("getTaskRefresh");
+          };
+      }, []);
+
     // =================== Fetch Employees ===================
     const handleGetEmployees = async () => {
       try {
         const data = await getEmployees(user?.companyId?._id || user?.createdBy?._id);
         if (Array.isArray(data)) {
           dispatch(getEmployeeList(data));
+          setEmployeeListRefresh(false);
         };
       } catch (err: any) {
         toast({
@@ -98,10 +118,10 @@ const Task: React.FC = () => {
     };
 
       useEffect(()=>{
-      if((user?.role === "admin" || user?.taskRole === "manager") && employeeList.length === 0){
+      if((user?.role === "admin" || user?.taskRole === "manager") && (employeeList.length === 0 || employeeListRefresh)){
           handleGetEmployees();
       }
-        }, [user?._id, employeeList.length]);
+        }, [user?._id, employeeList.length, employeeListRefresh]);
 
          const handleOpenTaskForm = () => {
   // 1️⃣ No employees
@@ -109,13 +129,6 @@ const Task: React.FC = () => {
     return toast({ title: "No Employees Found", description: "Please add at least one employee before creating a project.", variant: "destructive" });
   }
 
-  // 2️⃣ Check if at least one manager exists
-  const hasManager = employeeList.some(
-    (emp) => emp?.taskRole && emp.taskRole !== "none"
-  );
-  if (!hasManager) {
-    return toast({ title: "Manager Required", description: "Please assign at least one employee as a manager before creating a project.", variant: "destructive" });
-  }
   // 3️⃣ All good
   setInitialData(null);
   setIsFormOpen(true);
@@ -130,6 +143,8 @@ const Task: React.FC = () => {
       const res = await reassignTask(obj);
       console.log(res);
       if (res.status === 200) {
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         toast({ title: "Reassign Task", description: res.data.message });
         setReasignForm(false);
         setTaskListRefresh(true);
@@ -149,6 +164,8 @@ const Task: React.FC = () => {
       const res = await taskStatusChange(obj);
       console.log(res);
       if (res.status === 200) {
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         toast({ title: "Task Status.", description: res.data.message });
         setTaskListRefresh(true);
 
@@ -206,6 +223,8 @@ useEffect(() => {
       console.log(res)
       if (res.status === 200) {
         setTaskListRefresh(true);
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         toast({
           title: "Task Deleted.",
           description: `${res?.data?.message}`,
@@ -225,6 +244,15 @@ useEffect(() => {
 
   return (
     <>
+    <EmployeeFormDialog
+              open={isDialogOpen}
+              onClose={() => { setIsDialogOpen(false) }}
+              isEditMode={false}
+              initialData={null}
+              setEmployeeListRefresh={setEmployeeListRefresh}
+              selectedDepartmentName={""} //blank hai kyuki y sirf department k case m use hoga
+            />
+
           <SubTaskForm
            isOpen={subTaskOpenForm}
             setSubTaskListRefresh={setSubTaskListRefresh}
@@ -282,12 +310,22 @@ useEffect(() => {
 
               {/* Right Side: Create Task Button */}
               {user?.taskRole !== "none" && (
+                <>
+                <div className="flex flex-row jusitfy-end gap-2">
+                 {(user?.role==="admin"&& employeeList?.length===0) && <Button
+                  className="w-full sm:w-auto mt-2 sm:mt-0"
+                  onClick={()=>{setIsDialogOpen(true)}}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Employee
+                </Button>}
                 <Button
                   className="w-full sm:w-auto mt-2 sm:mt-0"
                   onClick={handleOpenTaskForm}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Create Task
                 </Button>
+                </div>
+                </>
               )}
             </div>
 

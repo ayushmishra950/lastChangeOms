@@ -13,6 +13,8 @@ const MainLayout: React.FC = () => {
   const [taskName, setTaskName] = useState<string>("");
   const [jobName, setJobName] = useState<string>("");
   const [jobSubPage, setJobSubPage] = useState<string>("");
+  const [leadName, setLeadName] = useState<string>("");
+  const [leadSubPage, setLeadSubPage] = useState<string>("");
 
   const toggleSidebar = () => { setSidebarOpen(!sidebarOpen); };
 
@@ -22,10 +24,12 @@ const MainLayout: React.FC = () => {
       <Sidebar
         setTaskName={setTaskName}
         setJobName={setJobName}
+        setLeadName={setLeadName}
         isOpen={sidebarOpen}
         setActiveSidebar={setActiveSidebar}
         setTaskSubPage={setTaskSubPage}
         setJobSubPage={setJobSubPage}
+        setLeadSubPage={setLeadSubPage}
         onToggle={toggleSidebar}
       />
 
@@ -36,6 +40,8 @@ const MainLayout: React.FC = () => {
           taskSubPage={taskSubPage}
           jobName={jobName}
           jobSubPage={jobSubPage}
+          leadName={leadName}
+          leadSubPage={leadSubPage}
         />
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <Outlet />

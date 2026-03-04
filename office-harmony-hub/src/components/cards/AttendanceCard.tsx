@@ -14,6 +14,7 @@ import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getAttendance } from "@/redux-toolkit/slice/allPage/attendanceSlice";
 import { getEmployeeList } from "@/redux-toolkit/slice/allPage/userSlice";
 import { getAttendancePayroll } from "@/redux-toolkit/slice/allPage/payrollSlice";
+import { socket } from "@/socket/socket";
 
 const AttendanceTable: React.FC<Props> = ({ attendanceRefresh, setAttendanceRefresh }) => {
   const { user } = useAuth();
@@ -33,7 +34,27 @@ const AttendanceTable: React.FC<Props> = ({ attendanceRefresh, setAttendanceRefr
   const dispatch = useAppDispatch();
   const attendanceList = useAppSelector((state) => state.attendance.attendance);
   const employeeList = useAppSelector((state) => state.user.employees);
-  const payrollList = useAppSelector((state) => state.payroll.attendancePayRoll);
+  const payrollList = useAppSelector((state) => state.payroll?.attendancePayRoll);
+
+  useEffect(() => {
+    socket.on("getAttendanceRefresh", () => {
+      handleGetEmployees();
+      fetchAttendances(selectedDate);
+    });
+    socket.on("getEmployeeRefresh", () => {
+      handleGetEmployees();
+    });
+    socket.on("getPayrollRefresh", () => {
+      handleGetEmployees();
+      fetchAttendances(selectedDate);
+    });
+
+    return () => {
+      socket.off("getAttendanceRefresh");
+      socket.off("getEmployeeRefresh");
+      socket.off("getPayrollRefresh");
+    };
+  }, []);
 
 
   // =================== Fetch Employees ===================
@@ -179,43 +200,90 @@ const AttendanceTable: React.FC<Props> = ({ attendanceRefresh, setAttendanceRefr
   }, [payrollList]);
 
 
+  // const calculateSalaryAfterCut = (userId: string) => {
+  //   const payroll = payrollMap[userId];
+  //   let totalSalary = 0;
+  //   let cutAmount = 0;
+  //   let finalSalary = 0;
+  //   if (!payroll) {
+  //     totalSalary = Number(employeeList.find((e) => e?._id === userId)?.monthSalary || 0);
+  //     return {
+  //       totalSalary,
+  //       cutAmount,
+  //       finalSalary,
+  //     };
+  //   }
+  //   else {
+  //     const summary = getMonthlySummary(userId, attendanceMap);
+
+  //     totalSalary =
+  //       Number(payroll.basic || 0) +
+  //       Number(payroll.allowance || 0) -
+  //       Number(payroll.deductions || 0);
+
+  //     const totalWorkingDays = 30; // fixed (ya dynamic kar sakte ho)
+  //     const perDaySalary = totalSalary / totalWorkingDays;
+
+  //     const absentDays =
+  //       summary.absent +
+  //       summary.halfDay * 0.5;
+
+  //     const cutAmount = perDaySalary * absentDays;
+  //     const finalSalary = Math.max(totalSalary - cutAmount, 0);
+
+  //     return {
+  //       totalSalary,
+  //       cutAmount,
+  //       finalSalary,
+  //     };
+  //   }
+  // };
+
   const calculateSalaryAfterCut = (userId: string) => {
     const payroll = payrollMap[userId];
-    let totalSalary = 0;
-    let cutAmount = 0;
-    let finalSalary = 0;
-    if (!payroll) {
-      totalSalary = Number(employeeList.find((e) => e?._id === userId)?.monthSalary || 0);
-      return {
-        totalSalary,
-        cutAmount,
-        finalSalary,
-      };
-    }
-    else {
-      const summary = getMonthlySummary(userId, attendanceMap);
+    const summary = getMonthlySummary(userId, attendanceMap);
 
+    // 1️⃣ Total Salary Calculate
+    let totalSalary = 0;
+
+    if (!payroll) {
+      totalSalary = Number(
+        employeeList.find(e => e._id === userId)?.monthSalary || 0
+      );
+    } else {
       totalSalary =
         Number(payroll.basic || 0) +
-        Number(payroll.allowance || 0) -
-        Number(payroll.deductions || 0);
-
-      const totalWorkingDays = 30; // fixed (ya dynamic kar sakte ho)
-      const perDaySalary = totalSalary / totalWorkingDays;
-
-      const absentDays =
-        summary.absent +
-        summary.halfDay * 0.5;
-
-      const cutAmount = perDaySalary * absentDays;
-      const finalSalary = Math.max(totalSalary - cutAmount, 0);
-
-      return {
-        totalSalary,
-        cutAmount,
-        finalSalary,
-      };
+        Number(payroll.allowance || 0);
     }
+
+    // 2️⃣ Set Total Working Days (IMPORTANT)
+    // Yaha aap 30 ya 26 rakh sakte ho company rule ke hisaab se
+    let totalWorkingDays = 30;
+
+    // Safety check
+    if (totalWorkingDays === 0) {
+      return { totalSalary: 0, cutAmount: 0, finalSalary: 0 };
+    }
+
+    // 3️⃣ Per Day Salary
+    const perDaySalary = totalSalary / totalWorkingDays;
+
+    // 4️⃣ Absent Days Calculation
+    const absentDays =
+      Number(summary?.absent || 0) +
+      0.5 * Number(summary?.halfDay || 0);
+
+    // 5️⃣ Cut Amount
+    const cutAmount = perDaySalary * absentDays;
+
+    // 6️⃣ Final Salary (Never Negative)
+    const finalSalary = Math.max(totalSalary - cutAmount, 0);
+
+    return {
+      totalSalary: Number(totalSalary.toFixed(2)),
+      cutAmount: Number(cutAmount.toFixed(2)),
+      finalSalary: Number(finalSalary.toFixed(2)),
+    };
   };
 
 

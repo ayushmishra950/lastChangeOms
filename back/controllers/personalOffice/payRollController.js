@@ -47,8 +47,11 @@ const createSalary = async (req, res) => {
     // 5️⃣ Log salary history
     if (employee) {
       const oldSalary = employee.monthSalary || 0; // previous salary
-      const newMonthSalary = basic + allowance - deductions; // compute new effective salary
+const basicNum = parseFloat(basic) || 0;
+const allowanceNum = parseFloat(allowance) || 0;
+const deductionsNum = parseFloat(deductions) || 0;
 
+const newMonthSalary = basicNum + allowanceNum - deductionsNum;
       // Only log if salary changed
       if (oldSalary !== newMonthSalary) {
         await EmployeeHistory.create({

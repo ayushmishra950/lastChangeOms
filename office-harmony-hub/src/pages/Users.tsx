@@ -18,6 +18,7 @@ import { formatDate } from "@/services/allFunctions"
 import AddManagerForm from "@/task/forms/AddManagerForm";
 import { getAdminList, getEmployeeList } from "@/redux-toolkit/slice/allPage/userSlice";
 import { useAppDispatch, useAppSelector } from '@/redux-toolkit/hooks/hook';
+import { socket } from "@/socket/socket";
 
 const Users: React.FC = () => {
   const { user } = useAuth();
@@ -47,6 +48,7 @@ const Users: React.FC = () => {
   const [managerRefresh, setManagerRefresh] = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ACTIVE");
+  const [addManagerData, setAddManagerData] = useState(null);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const adminList = useAppSelector((state) => state.user.admins);
@@ -66,13 +68,25 @@ const Users: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  useEffect(() => {
+    socket.on("getEmployeeRefresh", () => {
+      setEmployeeListRefresh(true);
+      setManagerRefresh(true);
+    });
+
+    return () => {
+      socket.off("getEmployeeRefresh");
+    };
+  }, []);
+
   const handleUpdateEmployeeStatus = async (id) => {
     let obj = { adminId: user?._id, companyId: user?.companyId?._id, employeeId: id, status: "ACTIVE" }
     try {
       const res = await updateEmployeeStatus(obj);
-      if(res.status===200){
-                setEmployeeListRefresh(true);
-        toast({title:"Employee Status Active Successfully.", description:res.data.message});
+      if (res.status === 200) {
+        setEmployeeListRefresh(true);
+        socket.emit("addEmployeeRefresh");
+        toast({ title: "Employee Status Active Successfully.", description: res.data.message });
       }
     }
     catch (err) {
@@ -264,6 +278,7 @@ const Users: React.FC = () => {
           onIsOpenChange={() => setIsFormOpen(false)}
           initialData={null}
           setManagerRefresh={setManagerRefresh}
+          managerData={addManagerData}
         />
         <EmployeeFormDialog
           open={isDialogOpen}
@@ -496,7 +511,7 @@ const Users: React.FC = () => {
                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenuItem
                         className="cursor-pointer"
-                        onClick={() => { setIsFormOpen(true); }}
+                        onClick={() => {setAddManagerData(userData); setIsFormOpen(true); }}
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Manager
@@ -530,7 +545,7 @@ const Users: React.FC = () => {
                       {userData?.status === "RELIEVED" && (
                         <DropdownMenuItem
                           className="cursor-pointer text-green-600"
-                        onClick={() => handleUpdateEmployeeStatus(userData?._id)}
+                          onClick={() => handleUpdateEmployeeStatus(userData?._id)}
                         >
                           <Check className="w-4 h-4 mr-2" />
                           Make Active

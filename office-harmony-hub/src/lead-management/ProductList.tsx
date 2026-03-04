@@ -10,17 +10,22 @@ import { getAllProduct, deleteProduct } from "@/services/Service";
 import { formatDate } from "@/services/allFunctions";
 import { useToast } from "@/hooks/use-toast";
 import DeleteCard from "@/components/cards/DeleteCard";
+import { Helmet } from "react-helmet-async";
+import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
+import { getProductList } from "@/redux-toolkit/slice/lead-portal/productSlice";
 
 
 const ProductList: React.FC = () => {
     const [search, setSearch] = useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [productlistrefresh, setProductListRefresh] = useState(false);
-    const [productList, setProductList] = useState([]);
+    const [productListRefresh, setProductListRefresh] = useState(false);
+    // const [productList, setProductList] = useState([]);
     const [initialData, setInitialData] = useState<any>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedProductId, setSelectedProductId] = useState(null);
+    const dispatch = useAppDispatch();
+    const productList = useAppSelector((state)=> state?.product?.productList)
 
     const { toast } = useToast();
 
@@ -52,15 +57,16 @@ const ProductList: React.FC = () => {
 
     const handleGetProductList = async () => {
         const res = await getAllProduct();
-        setProductList(res?.data?.data);
+        // setProductList(res?.data?.data);
+        dispatch(getProductList(res?.data?.data));
+        setProductListRefresh(false);
     };
 
     useEffect(() => {
-        if (productList?.length === 0 || productlistrefresh) {
+        if (productList?.length === 0 || productListRefresh) {
             handleGetProductList();
         }
-    }, [productlistrefresh]);
-    console.log(productList)
+    }, [productListRefresh]);
     return (
         <>
             <DeleteCard
@@ -77,12 +83,10 @@ const ProductList: React.FC = () => {
                 setProductListRefresh={setProductListRefresh}
                 initialData={initialData}
             />
+            <Helmet title="Product List" />
             <div className="p-4 md:p-8 space-y-6 bg-slate-50/50 min-h-screen">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Product Management</h1>
-                        <p className="text-slate-500 mt-1">Manage and track your products efficiently.</p>
-                    </div>
+                <div className="flex  justify-end gap-4 mt-[-49px]">
+                 
                     <Button
                         onClick={() => { setInitialData(null); setIsAddDialogOpen(true) }}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all"

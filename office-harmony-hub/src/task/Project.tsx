@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Plus, MoreHorizontal, Search, Filter, Eye, Edit, UserCheck, Trash2, ArrowLeft, CheckSquare  } from "lucide-react";
+import { Plus, MoreHorizontal, Search, Filter, Eye, Edit, UserCheck, Trash2, ArrowLeft, CheckSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import SubTaskForm from "./forms/SubTaskForm";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getProjects } from "@/redux-toolkit/slice/task/projectSlice";
 import { getEmployeeList } from "@/redux-toolkit/slice/allPage/userSlice";
+import { socket } from "@/socket/socket";
 
 type Priority = 'low' | 'medium' | 'high' | 'urgent';
 interface ProjectItem {
@@ -50,16 +51,16 @@ const Project: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-    const [taskOpenForm, setTaskOpenForm] = useState(false);
+  const [taskOpenForm, setTaskOpenForm] = useState(false);
   const [subTaskOpenForm, setSubTaskOpenForm] = useState(false);
   const [taskId, setTaskId] = useState("");
   const [taskListRefresh, setTaskListRefresh] = useState(false);
   const [subTaskListRefresh, setSubTaskListRefresh] = useState(false);
   const [projectId, setProjectId] = useState("");
-    // const [employeeList, setEmployeeList] = useState<any[]>([]);
-    const dispatch  = useAppDispatch();
-    const projects = useAppSelector((state) => state.project.projects);
-    const employeeList = useAppSelector((state) => state.user.employees);
+  // const [employeeList, setEmployeeList] = useState<any[]>([]);
+  const dispatch = useAppDispatch();
+  const projects = useAppSelector((state) => state.project.projects);
+  const employeeList = useAppSelector((state) => state.user.employees);
   const navigate = useNavigate();
 
   const today = new Date();
@@ -73,28 +74,40 @@ const Project: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  
-    // =================== Fetch Employees ===================
-    const handleGetEmployees = async () => {
-      try {
-        const data = await getEmployees(user?.companyId?._id);
-        if (Array.isArray(data)) {
-          // setEmployeeList(data)
-          dispatch(getEmployeeList(data));
-        };
-      } catch (err: any) {
-        toast({
-          title: "Error",
-          description: err?.response?.data?.message || "Something went wrong",
-          variant: "destructive",
-        });
-      }
+  useEffect(() => {
+    socket.on("getProjectRefresh", () => {
+      console.log("getProjectRefresh");
+      setProjectListRefresh(true);
+    });
+
+    return () => {
+      socket.off("getProjectRefresh");
     };
-    useEffect(()=>{
-      if(user?._id && employeeList?.length === 0){
-        handleGetEmployees();
-      }
-    }, [user?._id, employeeList?.length])
+  }, []);
+
+
+  // =================== Fetch Employees ===================
+  const handleGetEmployees = async () => {
+    try {
+      const data = await getEmployees(user?.companyId?._id);
+      if (Array.isArray(data)) {
+        // setEmployeeList(data)
+        dispatch(getEmployeeList(data));
+        setProjectListRefresh(false);
+      };
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err?.response?.data?.message || "Something went wrong",
+        variant: "destructive",
+      });
+    }
+  };
+  useEffect(() => {
+    if (user?._id && employeeList?.length === 0) {
+      handleGetEmployees();
+    }
+  }, [user?._id, employeeList?.length])
 
   const handleChangeStatus = async () => {
     let obj = { adminId: user?._id, companyId: user?.companyId?._id, projectId: selectedProject?._id, status: newStatus }
@@ -131,8 +144,8 @@ const Project: React.FC = () => {
     }
   };
   useEffect(() => {
-    if(user?._id && (projects?.length === 0 || projectListRefresh)){
-    handleGetProject();
+    if (user?._id && (projects?.length === 0 || projectListRefresh)) {
+      handleGetProject();
     }
   }, [projectListRefresh, projects?.length, user?._id]);
 
@@ -197,17 +210,17 @@ const Project: React.FC = () => {
           <CardHeader>
             <CardTitle>
               <div className="flex flex-row items-center justify-between">
-                 <span>  Project List ({filteredProjects?.length})</span>
-                  <Button
-            className="w-full sm:w-auto"
-            onClick={()=>{ setInitialData(null); setIsFormOpen(true);}}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Project
-          </Button>
+                <span>  Project List ({filteredProjects?.length})</span>
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={() => { setInitialData(null); setIsFormOpen(true); }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Project
+                </Button>
               </div>
-            
-              </CardTitle>
+
+            </CardTitle>
             <CardDescription>
               All projects with status and due dates.
             </CardDescription>
@@ -257,7 +270,7 @@ const Project: React.FC = () => {
                 <TableBody>
                   {filteredProjects.length ? (
                     filteredProjects.map((project) => (
-                      <TableRow key={project._id} className="cursor-pointer" onClick={() => { navigate("/tasks/task", { state: { id: project?._id, name:project?.name } }) }}>
+                      <TableRow key={project._id} className="cursor-pointer" onClick={() => { navigate("/tasks/task", { state: { id: project?._id, name: project?.name } }) }}>
                         <TableCell className="font-medium whitespace-nowrap">
                           {project.name}
                         </TableCell>
@@ -281,16 +294,16 @@ const Project: React.FC = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
-                                <DropdownMenuItem onClick={(e) => {e.stopPropagation();setProjectId(project?._id); setTaskOpenForm(true) }} className="flex items-center gap-2 cursor-pointer">
-                                <CheckSquare  className="h-4 w-4 text-gray-600" />
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setProjectId(project?._id); setTaskOpenForm(true) }} className="flex items-center gap-2 cursor-pointer">
+                                <CheckSquare className="h-4 w-4 text-gray-600" />
                                 Add Task
                               </DropdownMenuItem>
-                              
-                              <DropdownMenuItem onClick={(e) => {e.stopPropagation(); setSelectedProjectId(project?._id); setIsProjectDetailOpen(true) }} className="flex items-center gap-2 cursor-pointer">
+
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project?._id); setIsProjectDetailOpen(true) }} className="flex items-center gap-2 cursor-pointer">
                                 <Eye className="h-4 w-4 text-gray-600" />
                                 View
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => {e.stopPropagation(); setSelectedProject(project); setIsTaskStatusChangeModalOpen(true) }} className="flex items-center gap-2 cursor-pointer">
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsTaskStatusChangeModalOpen(true) }} className="flex items-center gap-2 cursor-pointer">
                                 <Filter className="h-4 w-4 text-blue-600" />
                                 Change Status
                               </DropdownMenuItem>
@@ -308,7 +321,7 @@ const Project: React.FC = () => {
 
                               <DropdownMenuSeparator />
 
-                              <DropdownMenuItem onClick={(e) => {e.stopPropagation(); setSelectedProjectId(project?._id); setIsDeleteDialogOpen(true) }} className="flex items-center gap-2 text-red-600 cursor-pointer">
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project?._id); setIsDeleteDialogOpen(true) }} className="flex items-center gap-2 text-red-600 cursor-pointer">
                                 <Trash2 className="h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>

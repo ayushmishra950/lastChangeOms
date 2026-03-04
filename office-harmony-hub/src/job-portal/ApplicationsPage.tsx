@@ -156,7 +156,7 @@ const ApplicationsPage: React.FC = () => {
       <div className="flex flex-col min-h-screen bg-gray-50/40 p-6 space-y-6">
 
         {/* Page Header */}
-        <div className="flex justify-between items-center gap-4">
+        <div className="flex justify-between items-center gap-4 mt-[-38px]">
 
           {/* Left Side Title */}
           <h1 className="inline-block bg-white px-4 py-2 font-bold text-lg rounded-md shadow-sm">
@@ -165,10 +165,6 @@ const ApplicationsPage: React.FC = () => {
 
           {/* Right Side Buttons */}
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" /> Export
-            </Button>
-
             <Button
               onClick={() => {
                 setInitialData(null);

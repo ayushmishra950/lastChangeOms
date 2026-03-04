@@ -84,13 +84,7 @@ const RolePage: React.FC = () => {
       <div className="flex flex-col min-h-screen bg-gray-50/40 p-6 space-y-6">
 
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Roles</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage Roles And Permissions.
-            </p>
-          </div>
+        <div className="flex justify-end gap-4 mt-[-40px]">
           <div className="flex items-center gap-2">
             <Button onClick={() => { setInitialData(null); setIsRoleFormOpen(true) }} className="gap-2 bg-blue-600 hover:bg-blue-700">
               <Briefcase className="h-4 w-4" /> Add Role

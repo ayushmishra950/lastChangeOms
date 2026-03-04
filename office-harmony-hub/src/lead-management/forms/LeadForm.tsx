@@ -1,190 +1,155 @@
-import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Lead } from "../LeadList";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
+import { getAllProduct, addLead, updateLead } from "@/services/Service";
+import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
+import { getProductList } from "@/redux-toolkit/slice/lead-portal/productSlice";
 
-const formSchema = z.object({
-    name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-    email: z.string().email({ message: "Invalid email address." }),
-    phone: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
-    course: z.string().min(1, { message: "Please select a course." }),
-    status: z.enum(["New", "Contacted", "Interested", "Enrolled", "Lost"]),
-    source: z.string().optional(),
-});
 
-interface LeadFormProps {
-    initialData?: Lead;
-    onSubmit: (data: z.infer<typeof formSchema>) => void;
-    onCancel: () => void;
-}
-
-const LeadForm: React.FC<LeadFormProps> = ({ initialData, onSubmit, onCancel }) => {
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: "",
-            email: "",
-            phone: "",
-            course: "",
-            status: "New",
-            source: "",
-        },
+const LeadForm = ({ isOpen, onOpenChange, initialData, setLeadListRefresh }) => {
+    const { toast } = useToast();
+    const isEdit = !!initialData;
+    const [loading, setLoading] = useState(false);
+    const [courseList, setCourseList] = useState([]);
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        phone: "",
+        product: "",
+        source: "",
+        price: ""
     });
+    const [productListRefresh, setProductListRefresh] = useState(false);
+    // const [productList, setProductList] = useState([]);
+    const dispatch = useAppDispatch();
+    const productList = useAppSelector((state)=> state?.product?.productList)
 
     useEffect(() => {
+
         if (initialData) {
-            form.reset({
-                name: initialData.name,
-                email: initialData.email,
-                phone: initialData.phone,
-                course: initialData.course,
-                status: initialData.status,
-                source: initialData.source || "",
+            setFormData({
+                name: initialData?.name,
+                email: initialData?.email,
+                phone: initialData?.phone,
+                product: initialData?.product?._id,
+                source: initialData?.source,
+                price: initialData?.price
             });
         }
-    }, [initialData, form]);
+    }, [initialData]);
 
+    const resetForm = () => {
+        setFormData({ name: "", email: "", phone: "", product: "", source: "", price: "" })
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setLoading(true);
+            const res = await (isEdit ? updateLead(initialData._id, formData) : addLead(formData));
+            if (res.status === 200 || res.status === 201) {
+                setLeadListRefresh(true);
+                onOpenChange(false);
+                resetForm();
+                toast({ title: isEdit ? "Lead Updated" : "Lead Added", description: res?.data?.message })
+            }
+        }
+        catch (err) {
+            console.log(err);
+            toast({ title: "Error Lead", description: err?.response?.data?.message || err?.message, variant: "destructive" })
+        }
+        finally {
+            setLoading(false);
+        }
+    }
+
+    const handleSelectProduct = async (value) => {
+        console.log(value)
+        const product = productList?.find((product) => product._id === value);
+        setFormData({ ...formData, product: value, price: product?.price });
+    }
+
+    const handleGetProductList = async () => {
+        const res = await getAllProduct();
+        // setProductList(res?.data?.data);
+        dispatch(getProductList(res?.data?.data))
+    };
+
+    useEffect(() => {
+        if (productList?.length === 0 || productListRefresh) {
+            handleGetProductList();
+        }
+    }, [productListRefresh]);
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Full Name</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="John Doe" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="john@example.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Phone Number</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="9876543210" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="course"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Course</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a course" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Web Development">Web Development</SelectItem>
-                                        <SelectItem value="Data Science">Data Science</SelectItem>
-                                        <SelectItem value="React Mastery">React Mastery</SelectItem>
-                                        <SelectItem value="UI/UX Design">UI/UX Design</SelectItem>
-                                        <SelectItem value="Python for Beginners">Python for Beginners</SelectItem>
+        <>
+            <Dialog open={isOpen} onOpenChange={(open) => { resetForm(); onOpenChange(open) }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{isEdit ? "Update Lead" : "Add New Lead"}</DialogTitle>
+                        <DialogDescription>
+                            Fill in the details below to {isEdit ? "update" : "create"} a lead.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit}>
+                        <Label className="text-xs">Name</Label>
+                        <Input type="text" value={formData?.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Enter Full Name" className="placeholder:text-xs" />
+                        <Label className="text-xs">Email</Label>
+                        <Input type="email" value={formData?.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="Enter Email Address" className="placeholder:text-xs" />
+                        <div className="flex my-1">
+                            <div className="flex-1">
+                                <Label className="text-xs">Phone</Label>
+                                <Input type="text" value={formData?.phone} maxLength={10} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="Enter Phone Number" className="placeholder:text-xs" />
+                            </div>
+                            <div className="flex-1 ml-2">
+                                <Label className="text-xs">Product</Label>
+                                <Select value={formData?.product} onValueChange={(value) => { handleSelectProduct(value) }}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Product" />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[250px] overflow-y-auto">
+                                        {productList?.map((product) => (
+                                            <SelectItem key={product._id} value={product._id} className="cursor-pointer">
+                                                {product.name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                            </div>
+                        </div>
+                        <div className="flex">
+                            <div className="flex-1">
+                                <Label className="text-xs">Price(₹)</Label>
+                                <Input type="number" value={formData?.price} placeholder="Enter Price" className="placeholder:text-xs" disabled />
+                                {!formData?.product && <p className="text-xs text-muted-foreground">Please select a course to auto-fill the price</p>}
+                            </div>
+                            <div className="flex-1 ml-2">
+                                <Label className="text-xs">Source(Optional)</Label>
+                                <Input type="text" value={formData?.source} onChange={(e) => setFormData({ ...formData, source: e.target.value })} placeholder="Enter Source" className="placeholder:text-xs" />
+                            </div>
+                        </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Status</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select status" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="New">New</SelectItem>
-                                        <SelectItem value="Contacted">Contacted</SelectItem>
-                                        <SelectItem value="Interested">Interested</SelectItem>
-                                        <SelectItem value="Enrolled">Enrolled</SelectItem>
-                                        <SelectItem value="Lost">Lost</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="source"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Source (Optional)</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g. LinkedIn, Instagram" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
 
-                <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button type="submit">
-                        {initialData ? "Update Lead" : "Add Lead"}
-                    </Button>
-                </div>
-            </form>
-        </Form>
-    );
-};
+                        {/* <Label>Status</Label>
+                        <Input /> */}
+                        <div className="flex justify-end gap-2 mt-4">
+                            <Button type="button" variant="outline" onClick={() => { resetForm(); onOpenChange(false) }}>Cancel</Button>
+                            <Button type="submit" disabled={loading || !formData?.name || !formData?.email || !formData?.phone || !formData?.product || !formData?.price}>
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {loading ? isEdit ? "Updating" : "Submitting" : isEdit ? "Update" : "Submit"}
+
+                            </Button>
+                        </div>
+
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </>
+    )
+}
 
 export default LeadForm;

@@ -13,6 +13,7 @@ import { months } from "@/services/allFunctions";
 import { Helmet } from "react-helmet-async";
 import { useAppDispatch, useAppSelector } from '@/redux-toolkit/hooks/hook';
 import { getPayroll, getSinglePayroll } from '@/redux-toolkit/slice/allPage/payrollSlice';
+import { socket } from "@/socket/socket";
 
 const today = new Date();
 const todayYear = today.getFullYear();
@@ -75,6 +76,19 @@ const Payroll: React.FC = () => {
       employees: uniqueEmployees.size,
     };
   }, [allPayrolls]);
+
+   useEffect(() => {
+                socket.on("getPayrollRefresh", () => {
+                    console.log("getPayrollRefresh");
+                    handleGetAllPayRolls();
+                    handleGetSinglePayRoll();
+                });
+        
+                return () => {
+                    socket.off("getPayrollRefresh");
+                };
+            }, []);
+
 
   const handleGetAllPayRolls = async () => {
     setPageLoading(true);
@@ -250,16 +264,16 @@ const Payroll: React.FC = () => {
                             {slip.month} {slip.year}
                           </TableCell>
                           <TableCell className="text-right">
-                            ${slip.basic.toLocaleString()}
+                            ₹{slip.basic.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right text-success">
-                            +${slip.allowance.toLocaleString()}
+                            +₹{slip.allowance.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right text-destructive">
-                            -${slip.deductions.toLocaleString()}
+                            -₹{slip.deductions.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right font-bold">
-                            ${(slip.basic + slip.allowance - slip.deductions).toLocaleString()}
+                            ₹{(slip.basic + slip.allowance - slip.deductions).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button

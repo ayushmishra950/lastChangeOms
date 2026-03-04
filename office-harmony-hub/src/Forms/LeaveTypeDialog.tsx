@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 import { useAuth } from "@/contexts/AuthContext";
+import { socket } from "@/socket/socket";
 
 export interface LeaveTypeFormData {
   _id?: string; // optional, used for edit mode
@@ -97,6 +98,7 @@ setLeaveTypeRefresh
     }
 
     if (response?.data?.success) {
+      socket.emit("addLeaveRefresh");
       toast({
         title: "Success",
         description: isEditMode

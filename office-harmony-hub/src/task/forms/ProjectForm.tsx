@@ -11,7 +11,8 @@ import { addProject, updateProject } from "@/services/Service";
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ProjectFormData, ProjectFormProps, Priority } from "@/types/index";
-import { formatDateFromInput } from "@/services/allFunctions"
+import { formatDateFromInput } from "@/services/allFunctions";
+import { socket } from "@/socket/socket";
 
 const ProjectForm: React.FC<ProjectFormProps> = ({
   isOpen,
@@ -109,6 +110,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
           title: isEdit ? "Project Updated" : "Project Created",
           description: res.data.message || "Success",
         });
+        socket.emit("addProjectRefresh", res.data.project._id);
         setProjectListRefresh(true);
         onClose();
       } else {

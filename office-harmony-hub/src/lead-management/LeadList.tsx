@@ -1,48 +1,25 @@
-import React, { useState, useMemo } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import React, { useState, useMemo, useEffect } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  MoreHorizontal,
-  Plus,
-  Search,
-  UserPlus,
-  Mail,
-  Phone,
-  Filter,
-  ArrowUpDown,
-  Trash2,
-  Edit,
-} from "lucide-react";
-import { toast } from "sonner";
+import { MoreHorizontal, Plus, Search, UserPlus, Mail, Phone, Filter, ArrowUpDown, Trash2, Edit, CheckCircle, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import LeadForm from "./forms/LeadForm";
+import { Helmet } from "react-helmet-async";
+import { getAllLead, deleteLead, updateLeadStatus } from "@/services/Service";
+import { formatDate } from "@/services/allFunctions";
+import DeleteCard from "@/components/cards/DeleteCard";
+import { useToast } from "@/hooks/use-toast";
+import PaymentForm from "@/lead-management/forms/PaymentForm";
+import {getLeadList} from "@/redux-toolkit/slice/lead-portal/leadSlice"
+import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 
-export type LeadStatus = "New" | "Contacted" | "Interested" | "Enrolled" | "Lost";
+export type LeadStatus = "new" | "contacted" | "interested" | "enrolled" | "lost";
 
 export type Lead = {
   id: string;
@@ -55,131 +32,147 @@ export type Lead = {
   createdAt: string;
 };
 
-const dummyLeads: Lead[] = [
-  {
-    id: "1",
-    name: "Rahul Sharma",
-    email: "rahul.sharma@example.com",
-    phone: "9876543210",
-    course: "Web Development",
-    status: "New",
-    source: "LinkedIn",
-    createdAt: "2023-10-25",
-  },
-  {
-    id: "2",
-    name: "Priya Patel",
-    email: "priya.patel@example.com",
-    phone: "9123456780",
-    course: "Data Science",
-    status: "Interested",
-    source: "Instagram",
-    createdAt: "2023-10-24",
-  },
-  {
-    id: "3",
-    name: "Amit Kumar",
-    email: "amit.kumar@example.com",
-    phone: "9988776655",
-    course: "UI/UX Design",
-    status: "Contacted",
-    source: "Website",
-    createdAt: "2023-10-23",
-  },
-  {
-    id: "4",
-    name: "Sneha Reddy",
-    email: "sneha.reddy@example.com",
-    phone: "8877665544",
-    course: "React Mastery",
-    status: "Enrolled",
-    source: "Referral",
-    createdAt: "2023-10-22",
-  },
-  {
-    id: "5",
-    name: "Vikram Singh",
-    email: "vikram.singh@example.com",
-    phone: "7766554433",
-    course: "Python for Beginners",
-    status: "Lost",
-    source: "Cold Call",
-    createdAt: "2023-10-21",
-  },
-];
-
 const statusColors: Record<LeadStatus, string> = {
-  New: "bg-blue-100 text-blue-700 border-blue-200",
-  Contacted: "bg-purple-100 text-purple-700 border-purple-200",
-  Interested: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  Enrolled: "bg-green-100 text-green-700 border-green-200",
-  Lost: "bg-red-100 text-red-700 border-red-200",
+  new: "bg-blue-100 text-blue-700 border-blue-200",
+  contacted: "bg-purple-100 text-purple-700 border-purple-200",
+  interested: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  enrolled: "bg-green-100 text-green-700 border-green-200",
+  lost: "bg-red-100 text-red-700 border-red-200",
 };
+const statusOrder = ["new", "interested", "contacted", "lost"];
+
 
 const LeadList: React.FC = () => {
-  const [leads, setLeads] = useState<Lead[]>(dummyLeads);
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [leadlistrefresh, setLeadListRefresh] = useState(false);
+    const [isAddPaymentDialogOpen, setIsAddPaymentDialogOpen] = useState(false);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [leadListRefresh, setLeadListRefresh] = useState(false);
   const [initialData, setInitialData] = useState<any>(null);
+    const [paymentData, setPaymentData] = useState<any>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [status, setStatus] = useState("all");
+  // const [leadList, setLeadList] = useState([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [isStatusLoading, setIsStatusLoading] = useState(false);
+  const [statusData, setStatusData] = useState({ id: "", status: "new" });
+  const currentStatusIndex = statusOrder.indexOf(statusData?.status);
+  const dispatch = useAppDispatch();
+  const leadList = useAppSelector((state)=> state?.lead?.leadList)
 
   const filteredLeads = useMemo(() => {
-    return leads.filter(
-      (lead) =>
-        lead.name.toLowerCase().includes(search.toLowerCase()) ||
-        lead.email.toLowerCase().includes(search.toLowerCase()) ||
-        lead.phone.includes(search) ||
-        lead.course.toLowerCase().includes(search.toLowerCase())
+    if (!leadList) return [];
+
+    // 🔍 Search Filter
+    const searchFiltered = leadList.filter((v)=> v?.status!=="enrolled").filter((lead) =>
+      lead.name?.toLowerCase().includes(search.toLowerCase()) ||
+      lead.email?.toLowerCase().includes(search.toLowerCase()) ||
+      lead.phone?.includes(search) ||
+      lead.product?.name?.toLowerCase().includes(search.toLowerCase())
     );
-  }, [leads, search]);
 
-  const handleAddLead = (data: any) => {
-    const newLead: Lead = {
-      ...data,
-      id: (leads.length + 1).toString(),
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setLeads([newLead, ...leads]);
-    setIsAddDialogOpen(false);
-    toast.success("Lead added successfully");
+    // 🎯 Status Filter (separate variable)
+    const statusFiltered =
+      status && status !== "all"
+        ? searchFiltered.filter(
+          (lead) => lead.status?.toLowerCase() === status.toLowerCase()
+        )
+        : searchFiltered;
+
+    return statusFiltered;
+  }, [leadList, search, status]);
+
+  const handleDeleteLead = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await deleteLead(selectedLeadId);
+      if (res.status === 200) {
+        toast({ title: "Delete Lead", description: res?.data?.message });
+        setLeadListRefresh(true);
+      }
+    } catch (error) {
+      console.log(error);
+      toast({ title: "Delete Lead", description: error?.response?.data?.message, variant: "destructive" });
+    }
+    finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  }
+
+  const handleUpdateLeadStatus = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsStatusLoading(true);
+    let obj = {
+      id: statusData?.id,
+      status: statusData?.status
+    }
+    try {
+      const res = await updateLeadStatus(obj);
+      if (res.status === 200) {
+        toast({ title: "Update Lead Status", description: res?.data?.message });
+        setLeadListRefresh(true);
+      }
+    } catch (error) {
+      console.log(error);
+      toast({ title: "Update Lead Status", description: error?.response?.data?.message, variant: "destructive" });
+    }
+    finally {
+      setIsStatusLoading(false);
+      setIsStatusDialogOpen(false);
+    }
+  }
+
+  const handleGetLeadList = async () => {
+    try {
+      const res = await getAllLead();
+      console.log(res)
+      if (res.status === 200) {
+        // setLeadList(res?.data?.data);
+        dispatch(getLeadList(res?.data?.data))
+        setLeadListRefresh(false);
+      }
+    }
+    catch (err) {
+      console.log(err);
+    }
   };
 
-  const handleEditLead = (data: any) => {
-    if (!editingLead) return;
-    setLeads(
-      leads.map((l) =>
-        l.id === editingLead.id ? { ...l, ...data } : l
-      )
-    );
-    setEditingLead(null);
-    toast.success("Lead updated successfully");
-  };
-
-  const handleDeleteLead = (id: string) => {
-    setLeads(leads.filter((l) => l.id !== id));
-    toast.success("Lead deleted successfully");
-  };
-
-  const handleStatusUpdate = (id: string, status: LeadStatus) => {
-    setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
-    toast.success(`Status updated to ${status}`);
-  };
+  useEffect(() => {
+    if (leadListRefresh || leadList?.length === 0) {
+      handleGetLeadList();
+      setLeadListRefresh(false);
+    }
+  }, [leadListRefresh, leadList?.length]);
 
   return (
     <>
+    <PaymentForm
+    isOpen={isAddPaymentDialogOpen}
+        onOpenChange={setIsAddPaymentDialogOpen}
+        initialData={paymentData}
+        setLeadListRefresh={setLeadListRefresh}
+    />
       <LeadForm
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         initialData={initialData}
         setLeadListRefresh={setLeadListRefresh}
       />
+      <DeleteCard
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDeleteLead}
+        isDeleting={isDeleting}
+        title="Delete Lead?"
+        message="This Action Will Permanently Delete This Lead."
+      />
+      <Helmet title="Lead List" />
       <div className="p-4 md:p-8 space-y-6 bg-slate-50/50 min-h-screen">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Lead Management</h1>
-            <p className="text-slate-500 mt-1">Manage and track your potential students efficiently.</p>
-          </div>
+        <div className="flex flex-row justify-end gap-4 mt-[-45px] mb-[-10px]">
           <Button
             onClick={() => { setInitialData(null); setIsAddDialogOpen(true) }}
             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all"
@@ -201,12 +194,19 @@ const LeadList: React.FC = () => {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="text-slate-600">
-                  <Filter className="mr-2 h-4 w-4" /> Filter
-                </Button>
-                <Button variant="outline" size="sm" className="text-slate-600">
-                  <ArrowUpDown className="mr-2 h-4 w-4" /> Sort
-                </Button>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent className="w-[80px]">
+                    <SelectItem value="all" className="cursor-pointer">All</SelectItem>
+                    <SelectItem value="new" className="cursor-pointer">New</SelectItem>
+                    <SelectItem value="interested" className="cursor-pointer">Interested</SelectItem>
+                    <SelectItem value="contacted" className="cursor-pointer">Contacted</SelectItem>
+                    <SelectItem value="enrolled" className="cursor-pointer">Enrolled</SelectItem>
+                    <SelectItem value="lost" className="cursor-pointer">Lost</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>
@@ -217,7 +217,8 @@ const LeadList: React.FC = () => {
                   <TableRow>
                     <TableHead className="font-semibold text-slate-700">Lead Details</TableHead>
                     <TableHead className="font-semibold text-slate-700">Contact</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Course & Source</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Course</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Source</TableHead>
                     <TableHead className="font-semibold text-slate-700">Status</TableHead>
                     <TableHead className="font-semibold text-slate-700">Created At</TableHead>
                     <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>
@@ -225,63 +226,46 @@ const LeadList: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredLeads.length > 0 ? (
-                    filteredLeads.map((lead) => (
-                      <TableRow key={lead.id} className="hover:bg-slate-50/80 transition-colors">
+                    filteredLeads.map((lead, i) => (
+                      <TableRow key={lead._id} className="hover:bg-slate-50/80 transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
-                              {lead.name.charAt(0).toUpperCase()}
+                              {lead?.name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="font-medium text-slate-900">{lead.name}</p>
-                              <p className="text-xs text-slate-500">ID: LAD-{lead.id.padStart(3, '0')}</p>
+                              <p className="font-medium text-slate-900">{lead?.name?.charAt(0).toUpperCase() + lead?.name?.slice(1)}</p>
+                              <p className="text-xs text-slate-500">ID: LAD-{i + 1}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center text-sm text-slate-600">
-                              <Mail className="mr-2 h-3 w-3" /> {lead.email}
+                              <Mail className="mr-2 h-3 w-3" /> {lead?.email}
                             </div>
                             <div className="flex items-center text-sm text-slate-600">
-                              <Phone className="mr-2 h-3 w-3" /> {lead.phone}
+                              <Phone className="mr-2 h-3 w-3" /> {lead?.phone}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <p className="text-sm font-medium text-slate-800">{lead.course}</p>
-                            <Badge variant="outline" className="text-[10px] font-normal py-0 px-2 bg-slate-50 border-slate-200">
-                              {lead.source || "Unknown"}
-                            </Badge>
+                            <p className="text-sm font-medium text-slate-800">{lead?.product?.name?.charAt(0).toUpperCase() + lead?.product?.name?.slice(1)}</p>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="focus:outline-none">
-                                <Badge className={`${statusColors[lead.status]} border cursor-pointer hover:opacity-80 transition-opacity`}>
-                                  {lead.status}
-                                </Badge>
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                              <DropdownMenuLabel>Update Status</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {(["New", "Contacted", "Interested", "Enrolled", "Lost"] as LeadStatus[]).map((status) => (
-                                <DropdownMenuItem
-                                  key={status}
-                                  onClick={() => handleStatusUpdate(lead.id, status)}
-                                  className={lead.status === status ? "bg-slate-100" : ""}
-                                >
-                                  {status}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Badge variant="outline" className="text-[10px] font-normal py-0 px-2 bg-slate-50 border-slate-200">
+                            {lead?.source?.charAt(0).toUpperCase() + lead?.source?.slice(1) || "Unknown"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`${statusColors[lead.status]} border cursor-pointer hover:opacity-80 transition-opacity`}>
+                            {lead.status?.charAt(0).toUpperCase() + lead.status?.slice(1)}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-slate-600">
-                          {lead.createdAt}
+                          {formatDate(lead.createdAt)}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -291,14 +275,18 @@ const LeadList: React.FC = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => { setInitialData(lead); setIsAddDialogOpen(true) }}>
+                              {(lead?.status !== "lost" && lead?.status !== "lost") &&<><DropdownMenuItem className="cursor-pointer" onClick={() => { setStatusData({ id: lead._id, status: lead.status }); setIsStatusDialogOpen(true) }}>
+                                <CheckCircle className="mr-2 h-4 w-4" /> Update Status
+                              </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => { setPaymentData(lead); setIsAddPaymentDialogOpen(true) }}>
+                                <Edit className="mr-2 h-4 w-4" /> Convert To Order
+                              </DropdownMenuItem></>}
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => { setInitialData(lead); setIsAddDialogOpen(true) }}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Lead
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-red-600 focus:text-red-600"
-                                onClick={() => handleDeleteLead(lead.id)}
+                                className="text-red-600 focus:text-red-600 cursor-pointer"
+                                onClick={() => { setSelectedLeadId(lead._id); setIsDeleteDialogOpen(true) }}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete Lead
                               </DropdownMenuItem>
@@ -322,6 +310,44 @@ const LeadList: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update Lead Status</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdateLeadStatus}>
+              <Label htmlFor="status">Status</Label>
+              <Select value={statusData?.status} onValueChange={(value) => { setStatusData({ ...statusData, status: value }) }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOrder.map((statusValue) => {
+                    const optionIndex = statusOrder.indexOf(statusValue);
+                    const isDisabled = optionIndex < currentStatusIndex;
+
+                    return (
+                      <SelectItem
+                        key={statusValue}
+                        value={statusValue}
+                        disabled={isDisabled}
+                        className="cursor-pointer"
+                      >
+                        {statusValue.charAt(0).toUpperCase() + statusValue.slice(1)}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end mt-6">
+                <Button type="submit">
+                  {isStatusLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Status"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </>
   );

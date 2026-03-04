@@ -7,10 +7,11 @@ import { getEmployeebyId, handleGetPdfLetter, getAttendanceById, getSingleleaveR
 import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft } from "lucide-react";
-import { getStatusColorfromEmployee, getEventColor, formatDate,formatClock, getCurrentMonthAndYear } from "@/services/allFunctions";
+import { getStatusColorfromEmployee, getEventColor, formatDate, formatClock, getCurrentMonthAndYear } from "@/services/allFunctions";
 import { Helmet } from "react-helmet-async";
 import SalarySlipCard from '@/components/cards/SalarySlipCard';
 import { cn } from '@/lib/utils';
+import { socket } from "@/socket/socket";
 
 const dummyLetters = [
   {
@@ -40,7 +41,7 @@ const EmployeeDashboard = () => {
   const [attendanceList, setAttendanceList] = useState<any[]>([]);
   const [leaveList, setLeaveList] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(getCurrentMonthAndYear());
-  const [leaveSelectedDate, setLeaveSelectedDate] = useState(getCurrentMonthAndYear()); 
+  const [leaveSelectedDate, setLeaveSelectedDate] = useState(getCurrentMonthAndYear());
   const { id } = useParams();
   const { user } = useAuth();
   const attendanceDateRef = useRef(null);
@@ -77,7 +78,7 @@ const EmployeeDashboard = () => {
   // ================= Fetch Attendance =================
   const handleGetLeaveData = async (date: string) => {
     try {
-            const selected = new Date(date);
+      const selected = new Date(date);
       const month = selected.getMonth() + 1; // JS months = 0–11
       const year = selected.getFullYear();
       if (!id) return;
@@ -179,6 +180,36 @@ const EmployeeDashboard = () => {
       });
     }
   };
+  useEffect(() => {
+    socket.on("getPayrollRefresh", () => {
+      if(user?.role==="admin"){
+      handleGetSinglePayRoll();
+      }
+    });
+    socket.on("getLeaveRefresh", () => {
+       if(user?.role==="admin"){
+      handleGetLeaveData(leaveSelectedDate);
+       }
+    });
+    socket.on("getEmployeeRefresh", () => {
+       if(user?.role==="admin"){
+      handleGetEmployee();
+       }
+    });
+    socket.on("getAttendanceRefresh", () => {
+       if(user?.role==="admin"){
+      fetchAttendances(selectedDate);
+       }
+    });
+
+    return () => {
+      socket.off("getPayrollRefresh");
+      socket.off("getLeaveRefresh");
+      socket.off("getEmployeeRefresh");
+      socket.off("getAttendanceRefresh");
+    };
+  }, []);
+
 
 
   const handleGetSinglePayRoll = async () => {
@@ -580,12 +611,12 @@ const EmployeeDashboard = () => {
             </div>
             {/* Attendance History */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6">
-            <div className='flex flex-row justify-between'>
-               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Attendance History
-              </h2>
-              <input type='month' value={selectedDate} onChange={(e)=> setSelectedDate(e.target.value)} className='w-22 h-6 border text-sm border-gray-500 rounded-md'/>
-            </div>
+              <div className='flex flex-row justify-between'>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Attendance History
+                </h2>
+                <input type='month' value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className='w-22 h-6 border text-sm border-gray-500 rounded-md' />
+              </div>
               {attendanceList && attendanceList.length > 0 ? (
                 <ul className="space-y-2 max-h-[400px] overflow-y-auto pr-2 remarks-scroll">
                   {attendanceList.map((attendance, i) => {
@@ -624,58 +655,57 @@ const EmployeeDashboard = () => {
             </div>
 
             {/* Leave History */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6">
-            <div className='flex flex-row justify-between'>
- <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-    Leave History
-  </h2>
-  <input type='month' value={leaveSelectedDate} onChange={(e)=> setLeaveSelectedDate(e.target.value)} className='w-22 h-6 border text-sm border-gray-500 rounded-md'/>
-            </div>
- 
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6">
+              <div className='flex flex-row justify-between'>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Leave History
+                </h2>
+                <input type='month' value={leaveSelectedDate} onChange={(e) => setLeaveSelectedDate(e.target.value)} className='w-22 h-6 border text-sm border-gray-500 rounded-md' />
+              </div>
 
-  {Array.isArray(leaveList) && leaveList.length > 0 ? (
-    <ul className="space-y-4 max-h-[400px] overflow-y-auto pr-2 remarks-scroll">
-      {leaveList.map((leave) => {
-        const from = new Date(leave.fromDate).toLocaleDateString(); // format as per locale
-        const to = new Date(leave.toDate).toLocaleDateString();
 
-        return (
-          <li
-            key={leave._id}
-            className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md flex flex-col space-y-1 shadow-sm"
-          >
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {leave.leaveType?.name || "N/A"}
-              </span>
-              <span
-                className={`text-sm font-medium ${
-                  leave.status === "Approved"
-                    ? "text-green-500"
-                    : leave.status === "Rejected"
-                    ? "text-red-500"
-                    : "text-yellow-500"
-                }`}
-              >
-                {leave.status}
-              </span>
+              {Array.isArray(leaveList) && leaveList.length > 0 ? (
+                <ul className="space-y-4 max-h-[400px] overflow-y-auto pr-2 remarks-scroll">
+                  {leaveList.map((leave) => {
+                    const from = new Date(leave.fromDate).toLocaleDateString(); // format as per locale
+                    const to = new Date(leave.toDate).toLocaleDateString();
+
+                    return (
+                      <li
+                        key={leave._id}
+                        className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md flex flex-col space-y-1 shadow-sm"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {leave.leaveType?.name || "N/A"}
+                          </span>
+                          <span
+                            className={`text-sm font-medium ${leave.status === "Approved"
+                              ? "text-green-500"
+                              : leave.status === "Rejected"
+                                ? "text-red-500"
+                                : "text-yellow-500"
+                              }`}
+                          >
+                            {leave.status}
+                          </span>
+                        </div>
+                        <div className="text-gray-700 dark:text-gray-300 text-sm">
+                          {leave.description}
+                        </div>
+                        <div className="text-gray-500 dark:text-gray-400 text-sm">
+                          {from} - {to} ({leave.totalDays} {leave.totalDays > 1 ? "days" : "day"})
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <div className="flex items-center justify-center h-[120px] text-sm text-gray-500 dark:text-gray-400">
+                  No leaves available
+                </div>
+              )}
             </div>
-            <div className="text-gray-700 dark:text-gray-300 text-sm">
-              {leave.description}
-            </div>
-            <div className="text-gray-500 dark:text-gray-400 text-sm">
-              {from} - {to} ({leave.totalDays} {leave.totalDays > 1 ? "days" : "day"})
-            </div>
-          </li>
-        );
-      })}
-    </ul>
-  ) : (
-    <div className="flex items-center justify-center h-[120px] text-sm text-gray-500 dark:text-gray-400">
-      No leaves available
-    </div>
-  )}
-</div>
 
             {/* Remarks */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md p-6">

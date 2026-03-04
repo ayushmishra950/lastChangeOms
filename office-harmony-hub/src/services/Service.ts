@@ -1163,3 +1163,85 @@ export const deleteProduct = async (id: string) => {
 
   return res;
 }
+
+
+
+
+
+
+
+
+export const addLead = async (obj: any) => {
+  const res = await axios.post(
+    `${import.meta.env.VITE_API_URL}/api/lead/add`,
+    obj,
+  );
+
+  return res;
+}
+
+
+export const getAllLead = async () => {
+  const res = await axios.get(
+    `${import.meta.env.VITE_API_URL}/api/lead/get`
+  );
+
+  return res;
+}
+
+
+export const getSingleLead = async (obj: any) => {
+  const res = await axios.get(
+    `${import.meta.env.VITE_API_URL}/api/lead/getbyid`,
+    obj
+  );
+
+  return res;
+}
+
+
+export const updateLead = async (id: string, obj: any) => {
+  const res = await axios.put(
+    `${import.meta.env.VITE_API_URL}/api/lead/update/${id}`,
+    obj,
+  );
+
+  return res;
+}
+
+export const updateLeadStatus = async (obj: any) => {
+  const res = await axios.patch(
+    `${import.meta.env.VITE_API_URL}/api/lead/status`,
+    obj,
+  );
+  return res;
+}
+
+export const deleteLead = async (id: string) => {
+  const res = await axios.delete(
+    `${import.meta.env.VITE_API_URL}/api/lead/delete/${id}`);
+
+  return res;
+}
+
+
+
+export const updateLeadPayment = async (obj: any) => {
+  const res = await axios.patch(
+    `${import.meta.env.VITE_API_URL}/api/lead/payment`,
+    obj,
+  );
+
+  return res;
+}
+
+
+export const updateLeadPaymentStatus = async (obj: any) => {
+  const res = await axios.patch(
+    `${import.meta.env.VITE_API_URL}/api/lead/payment/status`,
+    obj,
+  );
+
+  return res;
+}
+

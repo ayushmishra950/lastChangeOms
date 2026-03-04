@@ -16,6 +16,7 @@ import { formatDate, getDaysBetween, allDaysCount } from "@/services/allFunction
 import { Helmet } from "react-helmet-async";
 import { getLeaveTypes, getLeaveRequests } from "@/redux-toolkit/slice/allPage/leaveSlice";
 import { useAppDispatch, useAppSelector } from '@/redux-toolkit/hooks/hook';
+import { socket } from "@/socket/socket";
 
 const Leave: React.FC = () => {
   const { user } = useAuth();
@@ -39,6 +40,21 @@ const Leave: React.FC = () => {
   const allLeaveRequests = useAppSelector((state) => state.leave.leaveRequests);
   const [pageLoading, setPageLoading] = useState(false);
   const [allDays, setAllDays] = useState(allDaysCount());
+
+
+  useEffect(() => {
+                socket.on("getLeaveRefresh", () => {
+                    console.log("getLeaveRefresh");
+                    handleGetleaveTypes();
+                    handleGetUserDashboard();
+                    handleGetleaveRequests();
+                });
+        
+                return () => {
+                    socket.off("getLeaveRefresh");
+                };
+            }, []);
+
 
   const handleGetUserDashboard = async () => {
     let obj = { companyId: user?.createdBy?._id, userId: user?._id }
@@ -394,7 +410,7 @@ const Leave: React.FC = () => {
               <CardContent className="p-4 flex flex-col justify-center text-center min-h-[100px]">
                 <p className="text-sm text-muted-foreground">Personal Leave</p>
                 <p className="text-2xl font-bold text-indigo-600 mt-2">
-                  {leaveDashboard?.personalLeave}
+                  {leaveDashboard?.usedLeave>1?(leaveDashboard?.personalLeave - 1) :leaveDashboard?.personalLeave}
                 </p>
               </CardContent>
             </Card>

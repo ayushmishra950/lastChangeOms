@@ -25,6 +25,7 @@ import { getleaveTypes } from "@/services/Service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getLeaveTypes } from "@/redux-toolkit/slice/allPage/leaveSlice";
+import { socket } from "@/socket/socket";
 
 const ApplyLeaveDialog = ({
   open,
@@ -98,6 +99,18 @@ const ApplyLeaveDialog = ({
     }
   }, [user?.createdBy?._id, leaveTypes?.length]);
 
+  useEffect(() => {
+              socket.on("getLeaveRefresh", () => {
+                  console.log("getLeaveRefresh");
+                  handleGetLeaveType();
+              });
+      
+              return () => {
+                  socket.off("getLeaveRefresh");
+              };
+          }, []);
+  
+
   /* =======================
         Submit Handler
   ======================= */
@@ -122,7 +135,7 @@ const ApplyLeaveDialog = ({
         );
       }
       console.log("Response:", res);
-
+     socket.emit("addLeaveRefresh");
       toast({
         title: mode ? "Leave Updated" : "Leave Applied",
         description: res?.data?.message,

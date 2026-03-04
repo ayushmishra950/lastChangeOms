@@ -14,6 +14,7 @@ import DepartmentDialog from "@/Forms/DepartmentDialog";
 import { EmployeeFormDialogProps, EmployeeDepartment } from "@/types/index";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getDepartment } from "@/redux-toolkit/slice/allPage/departmentSlice";
+import { socket } from "@/socket/socket";
 
 export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
   open,
@@ -279,6 +280,7 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
       }
 
       setEmployeeListRefresh(true);
+      socket.emit("addEmployeeRefresh");
       onClose();
       resetForm();
     } catch (err: any) {

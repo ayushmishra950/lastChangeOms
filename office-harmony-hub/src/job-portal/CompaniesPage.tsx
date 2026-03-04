@@ -13,7 +13,7 @@ import { Helmet } from "react-helmet-async";
 import AddCompanyDialog from "@/job-portal/forms/CompanyDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllCompanyJob, CompanyJobStatusChange } from "@/services/Service";
+import { getAllCompanyJob, CompanyJobStatusChange, generatePDF } from "@/services/Service";
 import AddJobDialog from "./forms/JobDialog";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
@@ -131,9 +131,6 @@ const CompaniesPage: React.FC = () => {
         {/* Page Header */}
         <div className="flex  sm:flex-row justify-end items-start sm:items-center gap-4 mt-[-36px]">
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" /> Export
-            </Button>
             <Button className="gap-2 bg-blue-600 hover:bg-blue-700" onClick={() => { setInitialData(null); setFormOpen(true) }}>
               <Plus className="h-4 w-4" /> Add Company
             </Button>

@@ -107,9 +107,6 @@ const CandidatesPage: React.FC = () => {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row justify-end gap-4 mt-[-35px]">
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2">
-              <Download className="h-4 w-4" /> Export
-            </Button>
             <Button onClick={() => { setInitialData(null); setIsCandidateFormOpen(true) }} className="gap-2 bg-blue-600 hover:bg-blue-700">
               <Briefcase className="h-4 w-4" /> Add Candidate
             </Button>

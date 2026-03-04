@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getEmployeeList } from "@/redux-toolkit/slice/allPage/userSlice";
+import { socket } from "@/socket/socket";
 
 
 const months = [
@@ -83,6 +84,16 @@ export default function GeneratePayslipDialog({
     }
   }, [initialData]);
 
+  useEffect(() => {
+      socket.on("getEmployeeRefresh", () => {
+        handleGetEmployees();
+      });
+  
+      return () => {
+        socket.off("getEmployeeRefresh");
+      };
+    }, []);
+
   const handleChange = (key, value) => {
     setObj((prev) => ({
       ...prev,
@@ -138,6 +149,7 @@ export default function GeneratePayslipDialog({
       }
       console.log("Payslip Response:", response);
       if (response.status === 201 || response.status === 200) {
+        socket.emit("addPayrollRefresh");
         setObj({ employeeId: '', month: '', year: '', basic: '', allowance: '', deductions: '', departmentName: '' });
         toast({ title: isEditMode ? "Payslip Updated" : "Payslip Generated", description: `The payslip has been successfully ${isEditMode ? "updated" : "generated"}.` });
       }

@@ -551,6 +551,7 @@ cron.schedule("0 18 * * *", async () => {
           }
 
           await attendance.save();
+          socket.emit("addAttendanceRefresh");
         }
       }
       return;
@@ -625,6 +626,7 @@ cron.schedule("0 18 * * *", async () => {
         }
 
         await attendance.save();
+        socket.emit("addAttendanceRefresh");
       }
     }
 

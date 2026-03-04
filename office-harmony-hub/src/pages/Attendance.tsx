@@ -11,6 +11,7 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { Helmet } from "react-helmet-async";
 import AttendanceForm from "@/Forms/AttendanceDialog"
 import { useAppSelector } from "@/redux-toolkit/hooks/hook";
+import { socket } from "@/socket/socket";
 
  const today = new Date();
 const getTodayDate = () => today.toISOString().split("T")[0];
@@ -71,6 +72,7 @@ const Attendance: React.FC = () => {
       const res = await submitClockIn(user?._id, user?.createdBy?._id);
       if (res.status === 200) {
         toast({ title: "Success", description: "You have successfully clocked in." });
+        socket.emit("addAttendanceRefresh");
        setAttendanceRefresh(true);
       //  handleGetAttendances(selectedDate);
       }
@@ -88,6 +90,7 @@ const Attendance: React.FC = () => {
       const res = await submitClockOut(user?._id, user?.createdBy?._id);
       if (res.status === 200) {
         toast({ title: "Success", description: "You have successfully clocked out." });
+        socket.emit("addAttendanceRefresh");
         setAttendanceRefresh(true);
         // handleGetAttendances(selectedDate);
       }

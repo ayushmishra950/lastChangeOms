@@ -11,6 +11,7 @@ import { formatDate, getStatusColor, getPriorityColor, getTaskCountByStatus, get
 import { Helmet } from "react-helmet-async";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getTaskDashboard } from "@/redux-toolkit/slice/task/dashboardSlice";
+import { socket } from "@/socket/socket";
 
 const TaskDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -37,6 +38,32 @@ const TaskDashboard: React.FC = () => {
       handleGetData();
     }
   }, [user?._id, userData]);
+
+
+   useEffect(() => {
+      socket.on("getProjectRefresh", () => {
+        if (user?.role === "admin") {
+          handleGetData();
+        }
+      });
+      socket.on("getTaskRefresh", () => {
+        console.log("getTaskRefresh");
+        handleGetData();
+      });
+      socket.on("getSubTaskRefresh", () => {
+        console.log("getSubTaskRefresh");
+        handleGetData();
+      });
+  
+  
+      return () => {
+        socket.off("getProjectRefresh");
+        socket.off("getEmployeeRefresh");
+        socket.off("getTaskRefresh");
+        socket.off("getEmployeeRefresh");
+        socket.off("getSubTaskRefresh");
+      };
+    }, []);
 
   return (
     <>

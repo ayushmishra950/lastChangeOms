@@ -10,28 +10,37 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { socket } from "@/socket/socket";
+import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
+import { getEmployeeList } from "@/redux-toolkit/slice/allPage/userSlice";
+import {getDepartment} from "@/redux-toolkit/slice/allPage/departmentSlice";
 
 interface ManagerFormProps {
     isOpen: boolean;
     onIsOpenChange: (open: boolean) => void;
     initialData?: any;
     setManagerRefresh?: (boolean) => void;
+    managerData?: any;
 }
 
 const AddManagerForm: React.FC<ManagerFormProps> = ({
     isOpen,
     onIsOpenChange,
     initialData,
-    setManagerRefresh
+    setManagerRefresh,
+    managerData
 }) => {
-    const [department, setDepartment] = useState("none");
+    const [department, setDepartment] = useState<string>("none");
     const [description, setDescription] = useState("");
     const [status, setStatus] = useState(true);
     const [loading, setLoading] = useState(false);
-    const [departmentList, setDepartmentList] = useState<any[]>([]);
-    const [employeeList, setEmployeeList] = useState<any[]>([]);
+    // const [departmentList, setDepartmentList] = useState<any[]>([]);
+    // const [employeeList, setEmployeeList] = useState<any[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
     const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+    const dispatch = useAppDispatch();
+    const employeeList = useAppSelector((state)=> state?.user?.employees);
+    const departmentList = useAppSelector((state)=> state?.department?.departments);
 
     const { toast } = useToast();
     const { user } = useAuth();
@@ -43,20 +52,36 @@ const AddManagerForm: React.FC<ManagerFormProps> = ({
         setDescription("");
         setStatus(true)
     }
+    console.log(managerData)
+   useEffect(() => {
+    if (!isOpen) return; // only initialize when modal opens
 
-    // Initialize form based on initialData (Add vs Edit)
+    const dataToUse = managerData || initialData;
+   console.log(dataToUse)
+    if (dataToUse) {
+        setDepartment(dataToUse.department || "none");
+        setDescription(dataToUse.description || "");
+        setStatus(dataToUse.taskRoleStatus === "active");
+        setSelectedEmployee(dataToUse._id?.toString() || "");
+
+        // Filter employees for selected department
+        const filtered = employeeList.filter(emp => emp.department === dataToUse.department);
+        setFilteredEmployees(filtered);
+    } else {
+        resetForm();
+    }
+}, [initialData, managerData, isOpen, employeeList]);
+
     useEffect(() => {
-        if (!initialData) {
-            resetForm();
-        } else {
-            // Edit Mode: fill with initialData
-            setDepartment(initialData.department || "none");
-            setDescription(initialData.description || "");
-            setStatus(initialData.taskRoleStatus === "active" ? true : false);
-            setSelectedEmployee(initialData._id?.toString() || "");
-            // filteredEmployees will be set after fetching employeeList
-        }
-    }, [initialData]);
+        socket.on("getEmployeeRefresh", () => {
+            console.log("getEmployeeRefresh");
+            handleGetEmployees();
+        });
+
+        return () => {
+            socket.off("getTaskRefresh");
+        };
+    }, []);
 
     //====================================  Submit Forms=======================================================
     const handleSubmit = async (e: React.FormEvent) => {
@@ -92,6 +117,8 @@ const AddManagerForm: React.FC<ManagerFormProps> = ({
                 toast({ title: `${initialData ? "Update Manager." : "Add Manager"}`, description: res.data.message });
                 onIsOpenChange(false); // close modal after success
                 setManagerRefresh(true);
+                socket.emit("addEmployeeRefresh");
+                socket.emit("updateManagerRefreshForFrontend", {selectedEmployee,oldEmployee: initialData?._id});
             }
 
         } catch (err: any) {
@@ -109,7 +136,8 @@ const AddManagerForm: React.FC<ManagerFormProps> = ({
     const handleGetDepartment = async () => {
         try {
             const data = await getDepartments(user?.companyId?._id);
-            setDepartmentList(data);
+            // setDepartmentList(data);
+            dispatch(getDepartment(data))
         } catch (err: any) {
             toast({
                 title: "Error",
@@ -121,7 +149,9 @@ const AddManagerForm: React.FC<ManagerFormProps> = ({
     const handleGetEmployees = async () => {
         try {
             const data = await getEmployees(user?.companyId?._id);
-            setEmployeeList(data);
+            console.log(data);
+            // setEmployeeList(data);
+            dispatch(getEmployeeList(data))
 
             // If Edit Mode, filter employees for selected department
             if (initialData && initialData.department) {
@@ -147,10 +177,15 @@ const AddManagerForm: React.FC<ManagerFormProps> = ({
             setSelectedEmployee(""); // reset selection
         }
     };
+    useEffect(()=>{
+        if(employeeList?.length===0|| isOpen){
+            handleGetEmployees();
+        }
+    },[employeeList?.length, isOpen])
     useEffect(() => {
-        if (!isOpen) return;
-        handleGetDepartment();
-        handleGetEmployees();
+       if(departmentList?.length===0|| isOpen){
+ handleGetDepartment();
+       }   
     }, [isOpen]);
 
     return <Dialog open={isOpen} onOpenChange={(open) => { resetForm(); onIsOpenChange(open) }}>
@@ -179,10 +214,9 @@ const AddManagerForm: React.FC<ManagerFormProps> = ({
                 </div>
 
                 {/* Employees - show only if filteredEmployees.length > 0 */}
-                {filteredEmployees.length > 0 && (
                     <div>
                         <Label className="text-sm">Employee*</Label>
-                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee} disabled={department==="none"}>
                             <SelectTrigger className="w-full truncate">
                                 <SelectValue placeholder="Select employee" />
                             </SelectTrigger>
@@ -204,7 +238,17 @@ const AddManagerForm: React.FC<ManagerFormProps> = ({
                             </SelectContent>
                         </Select>
                     </div>
-                )}
+                    { department === "none" && (
+                        <p className="text-xs text-red-500">
+                            Please Select at least one Department.
+                        </p>
+                    )   }
+                
+                    { department !== "none" && filteredEmployees.length === 0 && (
+                        <p className="text-xs text-red-500">
+                            There is no employee in the selected department.
+                        </p>
+                    )   }
 
                 {/* Description */}
                 <div>

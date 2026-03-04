@@ -9,6 +9,8 @@ import departmentReducer from "../slice/allPage/departmentSlice";
 import expenseReducer from "../slice/allPage/expenseSlice";
 import reportReducer from "../slice/allPage/reportSlice";
 import dashboardReducer from "../slice/allPage/dashboardSlice";
+import loginUserReducer from "../slice/allPage/loginUserSlice";
+
 
 // Only Task Reducers 
 import projectReducer from "../slice/task/projectSlice";
@@ -25,6 +27,9 @@ import companyJobReducer from "../slice/job-portal/companyJobSlice";
 import jobReducer from "../slice/job-portal/jobSlice";
 import applicationReducer from "../slice/job-portal/applicationSlice";
 import dashboardJobReducer from "../slice/job-portal/dashboardSlice";
+// lead-portal k liye
+import leadReducer from "../slice/lead-portal/leadSlice";
+import productReducer from "../slice/lead-portal/productSlice";
 
 export const store = configureStore({
     reducer: {
@@ -38,6 +43,7 @@ export const store = configureStore({
         expense: expenseReducer,
         report: reportReducer,
         dashboard: dashboardReducer,
+        loginUser:loginUserReducer,
         // Task Reducers
         project: projectReducer,
         manager: managerReducer,
@@ -52,7 +58,11 @@ export const store = configureStore({
         companyJob: companyJobReducer,
         job: jobReducer, 
         application: applicationReducer, 
-        dashboardJob: dashboardJobReducer
+        dashboardJob: dashboardJobReducer,
+
+        // lead-portal k liye
+        lead: leadReducer, 
+        product: productReducer
     }
 });
 

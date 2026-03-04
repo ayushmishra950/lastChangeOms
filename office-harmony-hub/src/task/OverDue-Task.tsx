@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MoreHorizontal, Search, Filter, AlertCircle, Eye, Edit, UserPlus, CheckCircle,ArrowLeft, Trash2 } from "lucide-react";
+import { MoreHorizontal, Search, Filter, AlertCircle, Eye, Edit, UserPlus, CheckCircle, ArrowLeft, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import SubTaskDetailCard from "./cards/SubTaskDetailCard";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getOverdueTasks } from "@/redux-toolkit/slice/task/overdueTaskSlice";
 import { getProjects } from "@/redux-toolkit/slice/task/projectSlice";
+import { socket } from "@/socket/socket";
 
 interface IEmployee {
   _id: string;
@@ -28,7 +29,7 @@ interface IEmployee {
 }
 interface project {
   _id: string;
-  name:string;
+  name: string;
 }
 
 interface OverdueTaskItem {
@@ -37,8 +38,8 @@ interface OverdueTaskItem {
   project: string;
   managerId?: IEmployee;
   projectId?: project;
-  taskId?:project;
-  createdBy:IEmployee;
+  taskId?: project;
+  createdBy: IEmployee;
   endDate: string; // ISO date string
   status: "Pending" | "In Progress" | "Completed" | "Overdue";
 }
@@ -74,6 +75,31 @@ const OverdueTask: React.FC = () => {
       (filterProject === "all" || t.projectId?._id === filterProject)
   );
 
+  useEffect(() => {
+    socket.on("getProjectRefresh", () => {
+      if (user?.role === "admin") {
+        handleGetProject();
+      }
+    });
+    socket.on("getTaskRefresh", () => {
+      console.log("getTaskRefresh");
+      setTaskListRefresh(true);
+    });
+    socket.on("getSubTaskRefresh", () => {
+      console.log("getSubTaskRefresh");
+      setTaskListRefresh(true);
+    });
+
+
+    return () => {
+      socket.off("getProjectRefresh");
+      socket.off("getEmployeeRefresh");
+      socket.off("getTaskRefresh");
+      socket.off("getEmployeeRefresh");
+      socket.off("getSubTaskRefresh");
+    };
+  }, []);
+
   const handleReassignTask = async (object) => {
     if (!object || !user?._id || !user?.companyId?._id) return;
     let obj = { ...object, adminId: user?._id, companyId: user?.companyId?._id }
@@ -82,6 +108,8 @@ const OverdueTask: React.FC = () => {
       console.log(res);
       if (res.status === 200) {
         toast({ title: "Reassign Task", description: res.data.message });
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         setTaskListRefresh(true);
         setReasignForm(false);
       }
@@ -102,6 +130,8 @@ const OverdueTask: React.FC = () => {
       console.log(res)
       if (res.status === 200) {
         setTaskListRefresh(true);
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         toast({
           title: "Task Deleted.",
           description: `${res?.data?.message}`,
@@ -120,12 +150,14 @@ const OverdueTask: React.FC = () => {
   };
 
   const handleChangeStatus = async () => {
-    if (!user?._id ||( !user?.companyId?._id && !user?.createdBy?._id) || !selectedTask?._id || !newStatus) return;
+    if (!user?._id || (!user?.companyId?._id && !user?.createdBy?._id) || !selectedTask?._id || !newStatus) return;
     let obj = { adminId: user?._id, companyId: user?.companyId?._id || user?.createdBy?._id, taskId: selectedTask?._id, status: newStatus }
     try {
       const res = await taskStatusChange(obj);
       if (res.status === 200) {
         toast({ title: "Task Status.", description: res.data.message });
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         setTaskListRefresh(true);
         setIsTaskStatusChangeModalOpen(false);
 
@@ -138,19 +170,19 @@ const OverdueTask: React.FC = () => {
   }
 
   const handleGetOverdueTask = async () => {
-    if (!user?._id || (!user?.companyId?._id && !user?.createdBy?._id)) return ;
-      try {
-        const res = await getOverdueTask(user?._id, user?.companyId?._id || user?.createdBy?._id);
-        console.log(res)
-        if (res.status === 200) {
-          dispatch(getOverdueTasks(res?.data?.data || []));
-          setTaskListRefresh(false);
-        }
+    if (!user?._id || (!user?.companyId?._id && !user?.createdBy?._id)) return;
+    try {
+      const res = await getOverdueTask(user?._id, user?.companyId?._id || user?.createdBy?._id);
+      console.log(res)
+      if (res.status === 200) {
+        dispatch(getOverdueTasks(res?.data?.data || []));
+        setTaskListRefresh(false);
       }
-      catch (err) {
-        console.log(err);
-        toast({ title: "Error", description: err.response.data.message, variant: "destructive" });
-      }
+    }
+    catch (err) {
+      console.log(err);
+      toast({ title: "Error", description: err.response.data.message, variant: "destructive" });
+    }
   }
 
   const handleGetProject = async () => {
@@ -164,13 +196,13 @@ const OverdueTask: React.FC = () => {
       }
       catch (err) {
         console.log(err);
-        toast({ title: "Error", description: err.response.data.message, variant: "destructive" });
+        // toast({ title: "Error", description: err.response.data.message, variant: "destructive" });
       }
   }
 
   useEffect(() => {
-    if(user?._id && (tasks?.length === 0 || taskListRefresh)){
-    handleGetOverdueTask();
+    if (user?._id && (tasks?.length === 0 || taskListRefresh)) {
+      handleGetOverdueTask();
     }
   }, [user?._id, taskListRefresh, tasks?.length]);
 
@@ -205,11 +237,11 @@ const OverdueTask: React.FC = () => {
         message="Are you sure you want to permanently delete this task? All associated subtasks will also be deleted and cannot be recovered."
       />
       <TaskStatusChangeModal name={name} task={selectedTask} isOpen={isTaskStatusChangeModalOpen} newStatus={newStatus} setNewStatus={setNewStatus} onConfirm={handleChangeStatus} onClose={() => setIsTaskStatusChangeModalOpen(false)} />
-        {(user?.role === "admin" || user?.taskRole === "manager") ? (
-  <TaskDetailCard isOpen={taskCard} taskId={selectedTaskId} onClose={() => setTaskCard(false)} />
-) : user?.taskRole === "none" ? (
-  <SubTaskDetailCard isOpen={taskCard} subTaskId={selectedTaskId} onClose={() => setTaskCard(false)} />
-) : null}
+      {(user?.role === "admin" || user?.taskRole === "manager") ? (
+        <TaskDetailCard isOpen={taskCard} taskId={selectedTaskId} onClose={() => setTaskCard(false)} />
+      ) : user?.taskRole === "none" ? (
+        <SubTaskDetailCard isOpen={taskCard} subTaskId={selectedTaskId} onClose={() => setTaskCard(false)} />
+      ) : null}
 
       <div className="flex flex-col min-h-screen bg-gray-50/50 p-6 space-y-6 md:mt-[-26px]">
         <Card className="border-red-100 shadow-sm">
@@ -310,7 +342,7 @@ const OverdueTask: React.FC = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => {setSelectedTaskId(task?._id); setTaskCard(true); }} className="flex items-center gap-2 cursor-pointer">
+                              <DropdownMenuItem onClick={() => { setSelectedTaskId(task?._id); setTaskCard(true); }} className="flex items-center gap-2 cursor-pointer">
                                 <Eye className="w-4 h-4" />
                                 View
                               </DropdownMenuItem>
@@ -344,7 +376,7 @@ const OverdueTask: React.FC = () => {
 
                               <DropdownMenuSeparator />
 
-                              {user?.taskRole !== "none"? <DropdownMenuItem onClick={() => { setSelectedTaskId(task?._id); setIsDeleteDialogOpen(true); }} className="flex items-center gap-2 text-red-600 cursor-pointer">
+                              {user?.taskRole !== "none" ? <DropdownMenuItem onClick={() => { setSelectedTaskId(task?._id); setIsDeleteDialogOpen(true); }} className="flex items-center gap-2 text-red-600 cursor-pointer">
                                 <Trash2 className="w-4 h-4" />
                                 Delete Task
                               </DropdownMenuItem> : ""}

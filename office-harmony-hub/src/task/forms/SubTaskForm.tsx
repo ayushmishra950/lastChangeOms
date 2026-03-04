@@ -16,6 +16,7 @@ import { formatDateFromInput } from "@/services/allFunctions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import TaskForm from "./TaskForm";
 import { EmployeeFormDialog } from "@/Forms/EmployeeFormDialog";
+import { socket } from "@/socket/socket";
 
 const SubTaskForm: React.FC<SubTaskFormModalProps> = ({
   isOpen,
@@ -53,6 +54,18 @@ const SubTaskForm: React.FC<SubTaskFormModalProps> = ({
     const { scrollHeight, clientHeight } = scrollRef.current;
     setShowScrollArrow(scrollHeight > clientHeight + 5);
   };
+
+  useEffect(() => {
+    socket.on("getTaskRefresh", () => {
+      console.log("getTaskRefresh");
+      setTaskListRefresh(true);
+      handleGetTask();
+    });
+
+    return () => {
+      socket.off("getTaskRefresh");
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -218,10 +231,13 @@ const SubTaskForm: React.FC<SubTaskFormModalProps> = ({
     if (!user?._id || (!user?.companyId?._id && !user?.createdBy?._id)) return;
     const obj = { companyId: user?.companyId?._id || user?.createdBy?._id, adminId: user._id };
     try {
+      console.log("hiiii")
       const res = await getTask(obj);
+      console.log(res)
       if (res.status === 200) {
         const data = res?.data?.data;
         setTaskList(Array.isArray(data) ? data : Object.values(data || {}));
+        setTaskListRefresh(false);
       }
     } catch (err: any) {
       toast({ title: "Error", description: err.response?.data?.message, variant: "destructive" });

@@ -13,6 +13,7 @@ import axios from "axios";
 import { getTaskManager, deleteTaskManager } from "@/services/Service";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getManagers } from "@/redux-toolkit/slice/task/taskManagerSlice";
+import { socket } from "@/socket/socket";
 
 
 interface ManagerItem {
@@ -35,14 +36,23 @@ const TaskManager: React.FC = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedManagerId, setSelectedManagerId] = useState(null);
     const [managerRefresh, setManagerRefresh] = useState(false);
-     const dispatch = useAppDispatch();
-      const managers = useAppSelector((state) => state.manager.managers);
+    const dispatch = useAppDispatch();
+    const managers = useAppSelector((state) => state.manager.managers);
     const filteredManagers = managers.filter(
         (m) =>
             m.fullName.toLowerCase().includes(search.toLowerCase()) ||
             m.email.toLowerCase().includes(search.toLowerCase()) ||
             m.department.toLowerCase().includes(search.toLowerCase()) // include department in search
     );
+    useEffect(() => {
+        socket.on("getEmployeeRefresh", () => {
+            setManagerRefresh(true);
+        });
+
+        return () => {
+            socket.off("getEmployeeRefresh");
+        };
+    }, []);
 
     const handleDeleteClick = (employeeId) => {
         console.log(employeeId)
@@ -89,8 +99,8 @@ const TaskManager: React.FC = () => {
     };
 
     useEffect(() => {
-        if(user?._id && (managers?.length === 0 || managerRefresh)){
-        handleGetManager();
+        if (user?._id && (managers?.length === 0 || managerRefresh)) {
+            handleGetManager();
         }
     }, [managerRefresh, user?._id, managers?.length]);
 

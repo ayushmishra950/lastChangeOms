@@ -64,7 +64,7 @@ export const NotificationProvider = ({ children }: NotificationProviderProps) =>
       console.log(notification)
       if (notification.userId === user._id) {
         if (notification?.type === "task") {
-          toast({ title: notification?.type, description: `${notification?.message} Assigned By ${notification?.createdBy?.username || notification?.createdBy?.fullName}`, className: "bg-yellow-600" });
+          toast({ title: notification?.type, description: `${notification?.message} Assigned By ${notification?.createdBy?.username || notification?.createdBy?.fullName || "Admin"}`, className: "bg-yellow-600" });
         }
         else {
           toast({ title: notification?.type, description: notification?.message, className: "bg-yellow-600" });

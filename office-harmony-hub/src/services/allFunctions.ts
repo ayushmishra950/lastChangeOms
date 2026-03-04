@@ -285,8 +285,8 @@ export const navItems: NavItem[] = [
   { icon: Users, label: 'Employees', path: '/users', roles: ['super_admin', 'admin'] },
   { icon: IndianRupee, label: 'Expenses', path: '/expenses', roles: ['admin'] },
   { icon: Wallet, label: 'Payroll', path: '/payrolls', roles: ['admin', 'employee'] },
-  { icon: Bell, label: 'Job-Portal', path: '/jobs', roles: ['super_admin', 'admin'] },
-  { icon: User, label: 'Lead-Portal', path: '/leads', roles: ['super_admin', 'admin'] },
+  { icon: Bell, label: 'Job-Portal', path: '/jobs', roles: ['admin'] },
+  { icon: User, label: 'Lead-Portal', path: '/leads', roles: ['admin'] },
   { icon: BarChart3, label: 'Reports', path: '/reports', roles: ['admin'] },
   { icon: Settings, label: 'Setting', path: '/setting', roles: ['super_admin', 'admin', 'employee'] },
 ];
@@ -303,21 +303,21 @@ export const taskSubMenu = [
 
 
 export const JobSubMenu = [
-  { label: 'Dashboard', path: '/jobs', roles: ["admin", "manager", "employee"] },
-  { label: 'Companys', path: '/jobs/companys', roles: ["admin", "manager", "employee"] },
-  { label: 'Jobs', path: '/jobs/jobs', roles: ["admin", "manager"] },
+  { label: 'Dashboard', path: '/jobs', roles: ["admin"] },
+  { label: 'Companys', path: '/jobs/companys', roles: ["admin"] },
+  { label: 'Jobs', path: '/jobs/jobs', roles: ["admin"] },
   { label: 'Applications', path: '/jobs/application', roles: ["admin"] },
   { label: 'Candidates', path: '/jobs/candidates', roles: ["admin"] },
-  { label: 'Revenue', path: '/jobs/revenues', roles: ["admin", "manager", "employee"] },
+  { label: 'Revenue', path: '/jobs/revenues', roles: ["admin"] },
   { label: "Setting", path: "/jobs/setting", roles: ["admin"] },
   { label: "Roles", path: "/jobs/roles", roles: ["admin"] }
 ];
 
 
 export const LeadSubMenu = [
-  { label: 'LeadList', path: '/leads', roles: ["admin", "manager", "employee"] },
-  { label: 'OrderList', path: '/leads/orders', roles: ["admin", "manager", "employee"] },
-  { label: 'ProductList', path: '/leads/products', roles: ["admin", "manager"] },
+  { label: 'LeadList', path: '/leads', roles: ["admin"] },
+  { label: 'OrderList', path: '/leads/orders', roles: ["admin"] },
+  { label: 'ProductList', path: '/leads/products', roles: ["admin"] },
 ];
 
 
@@ -566,6 +566,38 @@ export const headingManage = (path: string, role: string) => {
       description:
         "Get a complete overview of recruitment performance, recent activity, and key hiring metrics.",
       icon: "LayoutDashboard",
+    };
+  }
+
+  // ----------------------------
+  // Lead Portal Section
+  // ----------------------------
+  if (path.startsWith("/leads")) {
+    if (path === "/leads") {
+      return {
+        title: "Lead Management",
+        description: "Manage and track your potential students efficiently.",
+        icon: "UserPlus",
+      };
+    }
+    if (path === "/leads/orders") {
+      return {
+        title: "Enrolled Orders",
+        description: "Manage enrollments, payments, and student orders.",
+        icon: "ShoppingCart",
+      };
+    }
+    if (path === "/leads/products") {
+      return {
+        title: "Product Management",
+        description: "Manage and track your products efficiently.",
+        icon: "Package",
+      };
+    }
+    return {
+      title: "Lead-Portal",
+      description: "Manage and track your leads and products.",
+      icon: "User",
     };
   }
 

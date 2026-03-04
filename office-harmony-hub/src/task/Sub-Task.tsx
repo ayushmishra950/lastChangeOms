@@ -20,6 +20,7 @@ import { useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getEmployeeList } from "@/redux-toolkit/slice/allPage/userSlice";
 import { getSubTasks } from "@/redux-toolkit/slice/task/subTaskSlice";
+import { socket } from "@/socket/socket";
 
 
 const SubTask: React.FC = () => {
@@ -77,6 +78,22 @@ const SubTask: React.FC = () => {
         return "bg-gray-100 text-gray-800 hover:bg-gray-100/80";
     }
   };
+
+  useEffect(() => {
+            socket.on("getEmployeeRefresh", () => {
+                console.log("getEmployeeRefresh");
+                handleGetEmployees();
+            });
+             socket.on("getSubTaskRefresh", () => {
+                console.log("getSubTaskRefresh");
+                setSubTaskListRefresh(true);
+            });
+    
+            return () => {
+                socket.off("getEmployeeRefresh");
+                socket.off("getSubTaskRefresh");
+            };
+        }, []);
 
   console.log(user)
     // =================== Fetch Employees ===================
@@ -159,6 +176,8 @@ const SubTask: React.FC = () => {
       if (res.status === 200) {
         toast({ title: "Sub Task Status.", description: res.data.message });
         setSubTaskListRefresh(true);
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         setIsTaskStatusChangeModalOpen(false);
       }
     }
@@ -177,6 +196,8 @@ const SubTask: React.FC = () => {
       if (res.status === 200) {
         toast({ title: "Reassign Task Successfully.", description: res.data.message });
         setSubTaskListRefresh(true);
+        socket.emit("addTaskRefresh");
+        socket.emit("addSubTaskRefresh");
         setReasignForm(false)
       }
       else {
@@ -198,7 +219,8 @@ const SubTask: React.FC = () => {
       const res = await deleteSubTask(obj);
       console.log(res)
       if (res.status === 200) {
-
+        socket.emit("addTaskRefresh");
+socket.emit("addSubTaskRefresh");
         toast({
           title: "Sub Task Deleted.",
           description: `${res?.data?.message}`,

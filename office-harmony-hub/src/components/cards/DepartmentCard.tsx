@@ -61,6 +61,7 @@ import { Button } from "@/components/ui/button";
 import {updateEmployeeByDepartment} from "@/services/Service";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { socket } from "@/socket/socket";
 
 const DepartmentCard = ({refreshList,departmentData,setSelectedDepartmentEmployees, employees, onClose, departmentList }) => {
   const {user} = useAuth();
@@ -113,6 +114,8 @@ useEffect(() => {
           const res = await updateEmployeeByDepartment(obj);
           console.log(res)
           if(res){
+            socket.emit("addEmployeeRefresh");
+            socket.emit("addDepartmentRefresh", selectedEmployee?._id);
             toast({title:"Employee Department Updated.", description:res?.message});
            await refreshList()
           }

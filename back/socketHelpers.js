@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 const Notification = require("./models/personalOffice/NotificationModel"); // Notification model
+const { Employee } = require("./models/personalOffice/employeeModel"); // adjust path if needed
 
 let io;
 
@@ -18,6 +19,58 @@ function initSocket(server) {
     socket.on("joinRoom", (roomId) => {
       socket.join(roomId?.toString());
       console.log(`${socket.id} joined room: ${roomId}`);
+    });
+
+    socket.on("addProjectRefresh", (projectId) => {
+      // same room me sabko notify karo
+      io.emit("getProjectRefresh");
+    });
+
+    socket.on("addTaskRefresh", () => {
+      // same room me sabko notify karo
+      io.emit("getTaskRefresh");
+    });
+
+    socket.on("addSubTaskRefresh", () => {
+      // same room me sabko notify karo
+      io.emit("getSubTaskRefresh");
+    });
+    socket.on("addEmployeeRefresh", () => {
+      // same room me sabko notify karo
+      io.emit("getEmployeeRefresh");
+    });
+
+    socket.on("addLeaveRefresh", () => {
+      // same room me sabko notify karo
+      io.emit("getLeaveRefresh");
+    });
+    socket.on("addAttendanceRefresh", () => {
+      // same room me sabko notify karo
+      io.emit("getAttendanceRefresh");
+    });
+     socket.on("addPayrollRefresh", () => {
+      // same room me sabko notify karo
+      io.emit("getPayrollRefresh");
+    });
+    socket.on("addDepartmentRefresh", async(employeeId) => {
+      const employeeData = await Employee.findById(employeeId).populate("createdBy", "name logo")
+        .select("+password");
+      // same room me sabko notify karo
+      io.emit("getDepartmentRefresh", employeeData);
+    });
+    socket.on("addRelieveRefresh", (employeeId) => {
+      console.log(employeeId)
+      // same room me sabko notify karo
+      io.emit("getRelieveRefresh", employeeId);
+    });
+
+     socket.on("updateManagerRefreshForFrontend", async({selectedEmployee, oldEmployee}) => {
+      // same room me sabko notify karo
+      const employeeData = await Employee.findById(selectedEmployee).populate("createdBy", "name logo")
+        .select("+password");
+         const oldEmployeeData = await Employee.findById(oldEmployee).populate("createdBy", "name logo")
+        .select("+password");
+      io.emit("updateManagerRefresh", {newManager:employeeData, oldManager:oldEmployeeData});
     });
 
     socket.on("disconnect", () => {
