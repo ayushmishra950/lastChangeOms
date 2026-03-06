@@ -129,6 +129,10 @@ const employeeSchema = new mongoose.Schema(
         type: String,
         default: "",
       },
+      ifscCode:{
+        type:String,
+        default:""
+      }
     },
 
     // Meta

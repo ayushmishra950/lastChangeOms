@@ -81,7 +81,8 @@ const addEmployee = async (req, res) => {
         salarySlip: await upload(files?.salarySlip?.[0]),
         aadhaar: (await upload(files?.aadhaar?.[0])) || req.body.aadhaar || "",
         panCard: (await upload(files?.panCard?.[0])) || req.body.panCard || "",
-        bankPassbook: await upload(files?.bankPassbook?.[0]),
+        bankPassbook: await upload(files?.bankPassbook?.[0] || req.body.bankPassbook || ""),
+        ifscCode: (req.body.ifscCode || ""),
       },
     });
 
@@ -298,12 +299,61 @@ const updateEmployee = async (req, res) => {
     /* =========================
        📁 FILE UPDATES (Cloudinary)
     ========================= */
+    // const documentUpdates = {};
+
+    // if (files?.profileImage?.[0]) {
+    //   const newImg = await upload(files.profileImage[0]);
+    //   documentUpdates.profileImage = newImg;
+
+    //   logHistory(
+    //     "DOCUMENT_UPDATE",
+    //     { profileImage: employee.profileImage },
+    //     { profileImage: newImg },
+    //     "Profile image updated"
+    //   );
+    // }
+
+    // if (files?.aadhaar?.[0]) {
+    //   const aadhaar = await upload(files.aadhaar[0]);
+    //   documentUpdates["documents.aadhaar"] = aadhaar;
+    // } else if (req.body.aadhaar) {
+    //   documentUpdates["documents.aadhaar"] = req.body.aadhaar;
+    // }
+
+    // if (files?.panCard?.[0]) {
+    //   const pan = await upload(files.panCard[0]);
+    //   documentUpdates["documents.panCard"] = pan;
+    // } else if (req.body.panCard) {
+    //   documentUpdates["documents.panCard"] = req.body.panCard;
+    // }
+
+    // if (files?.bankPassbook?.[0]) {
+    //   const bank = await upload(files.bankPassbook[0]);
+    //   documentUpdates["documents.bankPassbook"] = bank;
+    // }
+
+    // if (files?.salarySlip?.[0]) {
+    //   const slip = await upload(files.salarySlip[0]);
+    //   documentUpdates["documents.salarySlip"] = slip;
+    // }
+
+
+    /* =========================
+   📁 FILE & DOCUMENT UPDATES (Cloudinary + Strings + ifscCode)
+========================= */
     const documentUpdates = {};
 
+    // Helper for uploading or taking string value
+    const uploadOrValue = async (file, value) => {
+      if (file) return await upload(file);
+      if (value) return value;
+      return "";
+    };
+
+    // Profile Image
     if (files?.profileImage?.[0]) {
       const newImg = await upload(files.profileImage[0]);
       documentUpdates.profileImage = newImg;
-
       logHistory(
         "DOCUMENT_UPDATE",
         { profileImage: employee.profileImage },
@@ -312,29 +362,32 @@ const updateEmployee = async (req, res) => {
       );
     }
 
-    if (files?.aadhaar?.[0]) {
-      const aadhaar = await upload(files.aadhaar[0]);
-      documentUpdates["documents.aadhaar"] = aadhaar;
-    } else if (req.body.aadhaar) {
-      documentUpdates["documents.aadhaar"] = req.body.aadhaar;
-    }
+    // Aadhaar
+    documentUpdates["documents.aadhaar"] = await uploadOrValue(
+      files?.aadhaar?.[0],
+      req.body.aadhaar
+    );
 
-    if (files?.panCard?.[0]) {
-      const pan = await upload(files.panCard[0]);
-      documentUpdates["documents.panCard"] = pan;
-    } else if (req.body.panCard) {
-      documentUpdates["documents.panCard"] = req.body.panCard;
-    }
+    // Pan Card
+    documentUpdates["documents.panCard"] = await uploadOrValue(
+      files?.panCard?.[0],
+      req.body.panCard
+    );
 
-    if (files?.bankPassbook?.[0]) {
-      const bank = await upload(files.bankPassbook[0]);
-      documentUpdates["documents.bankPassbook"] = bank;
-    }
+    // Bank Passbook
+    documentUpdates["documents.bankPassbook"] = await uploadOrValue(
+      files?.bankPassbook?.[0],
+      req.body.bankPassbook
+    );
 
-    if (files?.salarySlip?.[0]) {
-      const slip = await upload(files.salarySlip[0]);
-      documentUpdates["documents.salarySlip"] = slip;
-    }
+    // Salary Slip
+    documentUpdates["documents.salarySlip"] = await uploadOrValue(
+      files?.salarySlip?.[0],
+      req.body.salarySlip
+    );
+
+    // IFSC Code
+    documentUpdates["documents.ifscCode"] = req.body.ifscCode || employee.documents?.ifscCode || "";
 
     if (Object.keys(documentUpdates).length > 0) {
       logHistory(

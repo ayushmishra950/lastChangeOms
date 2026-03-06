@@ -344,6 +344,15 @@ const EmployeeDashboard = () => {
     </p>
   </div>
 )}
+
+{isOnlyString(singleUserData?.documents?.ifscCode) && (
+  <div>
+    <p className="text-sm text-gray-500 dark:text-gray-400">Bank IFSC Code</p>
+    <p className="font-medium text-gray-900 dark:text-white">
+      {singleUserData?.documents?.ifscCode}
+    </p>
+  </div>
+)}
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Join Date</p>
                   <p className="font-medium text-gray-900 dark:text-white">{formatDate(singleUserData?.joinDate)}</p>
@@ -451,7 +460,7 @@ const EmployeeDashboard = () => {
 
               <div className="space-y-3">
                 {singleUserData?.documents && Object.entries(singleUserData.documents).length > 0 ? (
-                  Object.entries(singleUserData.documents).map(([name, url]) => (
+                  Object.entries(singleUserData.documents)?.filter(([name]) => name !== "ifscCode").map(([name, url]) => (
                     <div key={name} className="flex justify-between items-center text-sm">
                       <span
                         className={`cursor-pointer ${url ? "text-blue-600 dark:text-blue-400" : "text-gray-400 cursor-not-allowed"}`}

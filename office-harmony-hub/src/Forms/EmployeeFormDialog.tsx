@@ -92,31 +92,54 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
 
   // Initialize form data
   useEffect(() => {
+    console.log(initialData)
     if (initialData) {
       setCurrentEmployee({ ...initialData });
     } else {
       setCurrentEmployee(null);
     }
-  }, [initialData]);
+  }, [initialData, open]);
+
+
 
   useEffect(() => {
     if (user?.role === "admin" && (categories.length === 0 || departmentRefresh)) {
       handleGetDepartment();
     }
   }, [user, departmentRefresh]);
-
   useEffect(() => {
-    if (!open) return;
+    console.log(initialData)
+    if (initialData) {
+      setCurrentEmployee({
+        ...initialData,
+        documents: {
+          Aadhaar: initialData.documents?.aadhaar
+            ? { url: initialData.documents.aadhaar }
+            : { url: "" },
+          PAN: initialData.documents?.panCard
+            ? { url: initialData.documents.panCard }
+            : { url: "" },
+          BankPassbook: initialData.documents?.bankPassbook
+            ? { url: initialData.documents.bankPassbook }
+            : { url: "" },
+          SalarySlip: initialData.documents?.salarySlip
+            ? { url: initialData.documents.salarySlip }
+            : { url: "" },
+           ifscCode: initialData.documents?.ifscCode
+            ?  initialData.documents?.ifscCode
+            :  "",
+        }
+      });
 
-    // Reset previews when dialog opens
-    setImagePreview(initialData?.profileImage || "");
-    setSalarySlipPreview(initialData?.documents?.SalarySlip?.url || "");
-    setAadhaarPreview(initialData?.documents?.Aadhaar?.url || "");
-    setPanPreview(initialData?.documents?.PAN?.url || "");
-    setBankPreview(initialData?.documents?.BankPassbook?.url || "");
-
-    setFormStep(1);
-  }, [open, initialData]);
+      setImagePreview(initialData?.profileImage);
+      setAadhaarPreview(initialData.documents?.aadhaar);
+      setPanPreview(initialData.documents?.panCard);
+      setBankPreview(initialData.documents?.bankPassbook);
+      setSalarySlipPreview(initialData.documents?.salarySlip);
+    } else {
+      setCurrentEmployee(null);
+    }
+  }, [initialData, open]);
 
   // Scroll indicator logic
   const checkScroll = () => {
@@ -227,7 +250,7 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
         });
         return;
       }
-
+     console.log(currentEmployee)
       const formData = new FormData();
       formData.append("userId", user?._id || "");
       formData.append("companyId", user?.companyId?._id || "");
@@ -244,7 +267,9 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
       formData.append("employeeType", currentEmployee?.employeeType || "");
       formData.append("roleResponsibility", currentEmployee?.roleResponsibility || "");
       formData.append("lpa", String(currentEmployee?.lpa || 0));
-
+      if (currentEmployee?.documents?.ifscCode) {
+        formData.append("ifscCode", currentEmployee?.documents?.ifscCode)
+      }
       if (currentEmployee?.profileImage instanceof File) {
         formData.append("profileImage", currentEmployee.profileImage);
       }
@@ -261,10 +286,15 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
         formData.append("panCard", currentEmployee.documents.PAN.url);
       }
 
-      if (currentEmployee?.documents?.BankPassbook?.url instanceof File) {
-        formData.append("bankPassbook", currentEmployee.documents.BankPassbook.url);
-      }
-
+     if (currentEmployee?.documents?.BankPassbook?.url instanceof File) {
+  formData.append("bankPassbook", currentEmployee.documents.BankPassbook.url);
+} 
+else if (
+  typeof currentEmployee?.documents?.BankPassbook?.url === "string" &&
+  currentEmployee?.documents?.BankPassbook?.url !== ""
+) {
+  formData.append("bankPassbook", currentEmployee.documents.BankPassbook.url);
+}
       if (currentEmployee?.documents?.SalarySlip?.url instanceof File) {
         formData.append("salarySlip", currentEmployee.documents.SalarySlip.url);
       }
@@ -696,10 +726,23 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
                               ...prev?.documents,
                               BankPassbook: {
                                 ...prev?.documents?.BankPassbook,
-                                url: val
-                              }
-                            }
+                                url: val, // Update url in state
+                              },
+                            },
                           }));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <Label>Bank IFSC Code(Optional)</Label>
+                      <Input
+                        placeholder="Enter Bank IFSC code"
+                        value={currentEmployee?.documents?.ifscCode}
+                        onChange={(e) => {
+                          setCurrentEmployee((prev: any) => ({
+                            ...prev,
+                            documents: { ...prev?.documents, ifscCode: e.target.value }
+                          }))
                         }}
                       />
                     </div>
@@ -752,10 +795,11 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
   );
 };
 
-// FileInput component remains the same
+
+
 interface FileInputProps {
   label: string;
-  ref: React.Ref<HTMLInputElement>;
+  ref: React.RefObject<HTMLInputElement>;
   file: any;
   preview: string;
   setPreview: React.Dispatch<React.SetStateAction<string>>;
@@ -765,19 +809,92 @@ interface FileInputProps {
   onTextChange?: (value: string) => void;
 }
 
-const FileInput: React.FC<FileInputProps> = ({ label, ref, file, preview, setPreview, onChange, allowText, textValue, onTextChange }) => {
+const FileInput: React.FC<FileInputProps> = ({
+  label,
+  ref,
+  file,
+  preview,
+  setPreview,
+  onChange,
+  allowText,
+  textValue,
+  onTextChange,
+}) => {
   const [useText, setUseText] = useState(false);
 
+  // Decide when to show text input vs file input
   useEffect(() => {
-    if (textValue && !file && allowText) {
+    if (!allowText) return;
+
+    // File object image
+    if (file instanceof File && file.type.startsWith("image/")) {
+      setUseText(false);
+    }
+    // URL image
+    else if (typeof file === "string" && file.startsWith("http")) {
+      setUseText(false);
+    }
+    // Text value
+    else if (textValue) {
       setUseText(true);
+    } else {
+      setUseText(false);
     }
   }, [textValue, file, allowText]);
+
+  // Determine preview content
+  const getPreviewContent = () => {
+    const src =
+      preview ||
+      (file instanceof File
+        ? URL.createObjectURL(file)
+        : typeof file === "string"
+        ? file
+        : "");
+
+    if (!src) return null;
+
+    // Image detection
+    const isImage =
+      file instanceof File
+        ? file.type.startsWith("image/")
+        : typeof src === "string" &&
+          /\.(jpg|jpeg|png|webp|gif)$/i.test(src);
+
+    if (isImage) {
+      return (
+        <img
+          src={src}
+          alt={`${label} Preview`}
+          className="w-full h-full object-cover"
+        />
+      );
+    }
+
+    // PDF detection
+    const isPDF =
+      file instanceof File
+        ? file.type === "application/pdf"
+        : typeof src === "string" && src.toLowerCase().endsWith(".pdf");
+
+    if (isPDF) {
+      return (
+        <div className="flex items-center justify-center w-full h-full bg-gray-100 text-sm text-gray-600 font-medium">
+          PDF
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="space-y-1 relative">
       <div className="flex items-center justify-between">
-        <Label className="text-xs sm:text-sm text-muted-foreground">{label}</Label>
+        <Label className="text-xs sm:text-sm text-muted-foreground">
+          {label}
+        </Label>
+
         {allowText && (
           <button
             type="button"
@@ -793,29 +910,34 @@ const FileInput: React.FC<FileInputProps> = ({ label, ref, file, preview, setPre
         <Input
           type="text"
           className="h-9 sm:h-10 text-sm"
-          placeholder={`Enter ${label} number`}
+          placeholder={`Enter ${label} number or URL`}
           value={textValue || ""}
           onChange={(e) => onTextChange?.(e.target.value)}
         />
       ) : (
-        <Input type="file" accept=".pdf,image/*" ref={ref} onChange={onChange} />
+        <Input
+          type="file"
+          accept=".pdf,image/*"
+          ref={ref}
+          onChange={onChange}
+        />
       )}
 
       {!useText && preview && (
         <div className="relative w-24 h-24 mt-1 border rounded overflow-hidden">
-          {preview === "PDF_SELECTED" || file?.type === "application/pdf" ? (
-            <div className="flex items-center justify-center w-full h-full bg-gray-100 text-sm text-gray-600 font-medium">
-              PDF
-            </div>
-          ) : (
-            <img src={preview} alt={`${label} Preview`} className="w-full h-full object-cover" />
-          )}
+          {getPreviewContent()}
+
           <button
             type="button"
             className="absolute top-1 right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center text-red-600 hover:bg-red-50 shadow-sm"
             onClick={() => {
               setPreview("");
-              if (ref && "current" in ref && ref.current) ref.current.value = "";
+
+              if (ref?.current) {
+                ref.current.value = "";
+              }
+
+              onTextChange?.("");
             }}
           >
             ×

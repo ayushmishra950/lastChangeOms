@@ -27,7 +27,7 @@ doc.image(logoPath, 50, 15, { width: 80, height: 30 }); // x, y, width, height
 A Unit of Infonic Consultancy Services Pvt Ltd
 H.O: 2nd Floor, Krishna Tower, Heera Nagar Mode,
 DCM, Ajmer Rd. Jaipur`;
-  doc.fontSize(9).text(companyInfo, 30, 15, { align: 'right', width: doc.page.width - 60 });
+  doc.fillColor('white').fontSize(9).text(companyInfo, 30, 15, { align: 'right', width: doc.page.width - 60 });
 
   // ---------------- LETTER TITLE ----------------
   const titleY = headerHeight + 20;
