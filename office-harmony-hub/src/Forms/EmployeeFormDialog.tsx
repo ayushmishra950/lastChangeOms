@@ -475,7 +475,6 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
                       <Input
                         className="h-9 sm:h-10 text-sm"
                         type="text"
-                        inputMode="numeric"
                         value={currentEmployee?.contact || ""}
                         onChange={(e) => { const onlyDigits = e.target.value.replace(/\D/g, ""); setCurrentEmployee({ ...currentEmployee, contact: onlyDigits }) }}
                         placeholder="9876543210"
@@ -492,7 +491,7 @@ export const EmployeeFormDialog: React.FC<EmployeeFormDialogProps> = ({
                         type="number"
                         className="h-9 sm:h-10 text-sm"
                         value={currentEmployee?.monthSalary ?? ""}
-                        onChange={(e) => setCurrentEmployee({ ...currentEmployee, monthSalary: Number(e.target.value) })}
+                        onChange={(e) => setCurrentEmployee({ ...currentEmployee, monthSalary: (e.target.value) })}
                         placeholder="48000"
                         required
                       />

@@ -2,6 +2,7 @@ const { Employee } = require('../models/personalOffice/employeeModel');
 const Letter = require('../models/personalOffice/Letter');
 const PDFDocument = require('pdfkit');
 
+
 async function generateOfferLetter(employeeId, letterType) {
   const employee = await Employee.findById(employeeId);
   if (!employee) throw new Error('Employee not found');
@@ -18,7 +19,8 @@ async function generateOfferLetter(employeeId, letterType) {
   doc.rect(0, 0, doc.page.width, headerHeight).fill('#b91c1c');
 
   // Logo Top-left
-  doc.fillColor('white').fontSize(12).text('LOGO', 50, 20, { align: 'left' });
+  const logoPath = __dirname + '/../assets/image.png';
+doc.image(logoPath, 50, 15, { width: 80, height: 30 }); // x, y, width, height
 
   // Company info Top-right
   const companyInfo = `INFONIC SOLUTIONS
