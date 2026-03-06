@@ -57,22 +57,41 @@ const Payment = require("../../models/lead-portal/Payment");
  * @route   GET /api/leads
  */
 const getLeads = async (req, res) => {
-    try {
-        const leads = await Lead.find().populate("product").populate("payment").sort({ createdAt: -1 });
+  try {
+    const { currentMonth } = req.query; // expected format: "YYYY-MM" e.g., "2026-03"
 
-        res.status(200).json({
-            success: true,
-            count: leads.length,
-            data: leads,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+    let filter = {};
+
+    if (currentMonth) {
+      const [yearStr, monthStr] = currentMonth.split("-");
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+
+      if (!isNaN(year) && !isNaN(month)) {
+        const startDate = new Date(year, month - 1, 1); // 0-indexed month
+        const endDate = new Date(year, month, 1); // first day of next month
+
+        filter.createdAt = { $gte: startDate, $lt: endDate };
+      }
     }
-};
 
+    const leads = await Lead.find(filter)
+      .populate("product")
+      .populate("payment")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: leads.length,
+      data: leads,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 /**
  * @desc    Get Single Lead
  * @route   GET /api/leads/:id
@@ -191,15 +210,14 @@ const updateLeadStatus = async (req, res) => {
 
 
 
-
 const addPayment = async (req, res) => {
   try {
-    const { leadId, amountPaid, paymentMode } = req.body;
+    const { leadId, amountPaid, paymentMode, finalPrice, joinDate } = req.body;
 
-    // Validation
-    if (!leadId || amountPaid === undefined || !paymentMode) {
+    // Required fields validation
+    if (!leadId || finalPrice === undefined || !joinDate) {
       return res.status(400).json({
-        message: "leadId, amountPaid or paymentMode fields are required.",
+        message: "leadId, finalPrice and joinDate fields are required.",
       });
     }
 
@@ -208,14 +226,20 @@ const addPayment = async (req, res) => {
       return res.status(404).json({ message: "Lead Not Found." });
     }
 
-    // Convert amountPaid to number
-    const numericAmount = Number(amountPaid);
-    if (isNaN(numericAmount) || numericAmount < 0) {
-      return res.status(400).json({ message: "Invalid amountPaid value." });
+    // amountPaid optional
+    let numericAmount = 0;
+
+    if (amountPaid !== undefined && amountPaid !== "") {
+      numericAmount = Number(amountPaid);
+
+      if (isNaN(numericAmount) || numericAmount < 0) {
+        return res.status(400).json({ message: "Invalid amountPaid value." });
+      }
     }
 
-    // Determine paymentStatus based on amountPaid vs lead.price
+    // Determine paymentStatus
     let paymentStatus;
+
     if (numericAmount === 0) {
       paymentStatus = "pending";
     } else if (numericAmount < lead.price) {
@@ -224,21 +248,33 @@ const addPayment = async (req, res) => {
       paymentStatus = "paid";
     }
 
-    // Create new Payment
-    const payment = new Payment({
+    // Create payment object
+    const paymentData = {
       lead: leadId,
-      amountPaid: numericAmount,
-      paymentMode,
       paymentStatus,
-    });
+      finalPrice:finalPrice
+    };
+
+    // Optional fields add only if present
+    if (numericAmount > 0) {
+      paymentData.amountPaid = numericAmount;
+    }
+
+    if (paymentMode) {
+      paymentData.paymentMode = paymentMode;
+    }
+    if(joinDate) {
+        paymentData.joinDate = joinDate;
+    }
+
+    const payment = new Payment(paymentData);
 
     await payment.save();
 
-    // Update Lead status to enrolled
-  lead.payment = payment._id; // single payment
-lead.status = "enrolled";
-await lead.save();
-   
+    // Update Lead
+    lead.payment = payment._id;
+    lead.status = "enrolled";
+    await lead.save();
 
     return res.status(201).json({
       success: true,

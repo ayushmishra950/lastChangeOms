@@ -285,7 +285,7 @@ const Settings: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="mobile">Phone</Label>
-                    <Input id="mobile" value={formData.mobile} onChange={handleChange} />
+                    <Input id="mobile" value={formData.mobile} maxLength={10} onChange={handleChange} />
                   </div>
                 </>
               ) : (

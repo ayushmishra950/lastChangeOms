@@ -80,6 +80,19 @@ export const getCurrentWeek = (): string => {
   return `${year}-W${weekStr}`;
 };
 
+
+export const getCurrentDate = () => {
+  const today = new Date();
+
+// Local date in YYYY-MM-DD format
+const year = today.getFullYear();
+const month = String(today.getMonth() + 1).padStart(2, "0"); // month 0 se start hota hai
+const day = String(today.getDate()).padStart(2, "0");
+
+const currentDate = `${year}-${month}-${day}`;
+return currentDate
+}
+
 export const allDaysCount = () => {
   const today = new Date();
   const year = today.getFullYear();
@@ -316,8 +329,8 @@ export const JobSubMenu = [
 
 export const LeadSubMenu = [
   { label: 'LeadList', path: '/leads', roles: ["admin"] },
-  { label: 'OrderList', path: '/leads/orders', roles: ["admin"] },
-  { label: 'ProductList', path: '/leads/products', roles: ["admin"] },
+  { label: 'JoinList', path: '/leads/orders', roles: ["admin"] },
+  { label: 'CourseList', path: '/leads/products', roles: ["admin"] },
 ];
 
 
@@ -575,22 +588,22 @@ export const headingManage = (path: string, role: string) => {
   if (path.startsWith("/leads")) {
     if (path === "/leads") {
       return {
-        title: "Lead Management",
+        title: "Student Lead Management",
         description: "Manage and track your potential students efficiently.",
         icon: "UserPlus",
       };
     }
     if (path === "/leads/orders") {
       return {
-        title: "Enrolled Orders",
-        description: "Manage enrollments, payments, and student orders.",
+        title: "Enrolled JoinList",
+        description: "Manage enrollments, payments, and student Joins.",
         icon: "ShoppingCart",
       };
     }
     if (path === "/leads/products") {
       return {
-        title: "Product Management",
-        description: "Manage and track your products efficiently.",
+        title: "Course Management",
+        description: "Manage and track your Course efficiently.",
         icon: "Package",
       };
     }

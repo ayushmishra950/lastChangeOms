@@ -10,14 +10,12 @@ const paymentSchema = new mongoose.Schema(
 
     amountPaid: {
       type: Number,
-      required: true,
       min: 0,
     },
 
     paymentMode: {
       type: String,
       enum: ["cash", "upi", "card", "bank_transfer"],
-      required: true,
     },
 
     // Ye field optional bhi rakh sakte ho
@@ -26,6 +24,16 @@ const paymentSchema = new mongoose.Schema(
       enum: ["pending", "partial", "paid", "failed"],
       default: "pending",
     },
+    finalPrice:{
+            type:Number,
+            required:true,
+            trim:true,
+            min:0
+        },
+        joinDate:{
+            type:Date,
+            default : null
+        }
   },
   {
     timestamps: true, // createdAt & updatedAt auto banega

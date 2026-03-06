@@ -19,6 +19,12 @@ const dummyLetters = [
     pdfData: btoa("Dummy PDF Data")
   }
 ];
+const isOnlyString = (value) => {
+  if (!value) return false;
+
+  const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+  return !imageExtensions.test(value);
+};
 
 
 const EmployeeDashboard = () => {
@@ -312,6 +318,32 @@ const EmployeeDashboard = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">Contact</p>
                   <p className="font-medium text-gray-900 dark:text-white">{singleUserData?.contact}</p>
                 </div>
+              {isOnlyString(singleUserData?.documents?.aadhaar) && (
+  <div>
+    <p className="text-sm text-gray-500 dark:text-gray-400">Aadhar Card Number</p>
+    <p className="font-medium text-gray-900 dark:text-white">
+      {singleUserData?.documents?.aadhaar}
+    </p>
+  </div>
+)}
+
+{isOnlyString(singleUserData?.documents?.panCard) && (
+  <div>
+    <p className="text-sm text-gray-500 dark:text-gray-400">Pan Card Number</p>
+    <p className="font-medium text-gray-900 dark:text-white">
+      {singleUserData?.documents?.panCard}
+    </p>
+  </div>
+)}
+
+{isOnlyString(singleUserData?.documents?.bankPassbook) && (
+  <div>
+    <p className="text-sm text-gray-500 dark:text-gray-400">Bank Passbook Number</p>
+    <p className="font-medium text-gray-900 dark:text-white">
+      {singleUserData?.documents?.bankPassbook}
+    </p>
+  </div>
+)}
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Join Date</p>
                   <p className="font-medium text-gray-900 dark:text-white">{formatDate(singleUserData?.joinDate)}</p>
@@ -433,7 +465,7 @@ const EmployeeDashboard = () => {
                       </span>
 
                       <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${url ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium  ${url ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                           }`}
                       >
                         {url ? "Uploaded" : "Missing"}

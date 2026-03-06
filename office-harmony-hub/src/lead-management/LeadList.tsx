@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import PaymentForm from "@/lead-management/forms/PaymentForm";
 import {getLeadList} from "@/redux-toolkit/slice/lead-portal/leadSlice"
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
+import {getCurrentMonthAndYear, formatDateFromInput} from "@/services/allFunctions";
 
 export type LeadStatus = "new" | "contacted" | "interested" | "enrolled" | "lost";
 
@@ -39,7 +40,8 @@ const statusColors: Record<LeadStatus, string> = {
   enrolled: "bg-green-100 text-green-700 border-green-200",
   lost: "bg-red-100 text-red-700 border-red-200",
 };
-const statusOrder = ["new", "interested", "contacted", "lost"];
+const statusOrder = ["new", "interested", "contacted"]; // lost remove
+const extraStatuses = ["lost", "demo", "inDemo"]; // hover/click par show
 
 
 const LeadList: React.FC = () => {
@@ -60,6 +62,10 @@ const LeadList: React.FC = () => {
   const [isStatusLoading, setIsStatusLoading] = useState(false);
   const [statusData, setStatusData] = useState({ id: "", status: "new" });
   const currentStatusIndex = statusOrder.indexOf(statusData?.status);
+const [showExtra, setShowExtra] = useState(false); // for hover/click on contacted
+const [currentMonth, setCurrentMonth] = useState(getCurrentMonthAndYear());
+const dateRef = useRef(null);
+
   const dispatch = useAppDispatch();
   const leadList = useAppSelector((state)=> state?.lead?.leadList)
 
@@ -128,7 +134,7 @@ const LeadList: React.FC = () => {
 
   const handleGetLeadList = async () => {
     try {
-      const res = await getAllLead();
+      const res = await getAllLead(currentMonth);
       console.log(res)
       if (res.status === 200) {
         // setLeadList(res?.data?.data);
@@ -142,11 +148,11 @@ const LeadList: React.FC = () => {
   };
 
   useEffect(() => {
-    if (leadListRefresh || leadList?.length === 0) {
+    if (leadListRefresh || leadList?.length === 0|| currentMonth) {
       handleGetLeadList();
       setLeadListRefresh(false);
     }
-  }, [leadListRefresh, leadList?.length]);
+  }, [leadListRefresh, leadList?.length, currentMonth]);
 
   return (
     <>
@@ -183,32 +189,48 @@ const LeadList: React.FC = () => {
 
         <Card className="border-none shadow-sm overflow-hidden">
           <CardHeader className="bg-white border-b pb-4 px-6">
-            <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
-              <div className="relative w-full md:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search leads by name, email, or course..."
-                  className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-all"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent className="w-[80px]">
-                    <SelectItem value="all" className="cursor-pointer">All</SelectItem>
-                    <SelectItem value="new" className="cursor-pointer">New</SelectItem>
-                    <SelectItem value="interested" className="cursor-pointer">Interested</SelectItem>
-                    <SelectItem value="contacted" className="cursor-pointer">Contacted</SelectItem>
-                    <SelectItem value="enrolled" className="cursor-pointer">Enrolled</SelectItem>
-                    <SelectItem value="lost" className="cursor-pointer">Lost</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+          <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+  {/* Search */}
+  <div className="relative w-full md:w-96">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+    <Input
+      placeholder="Search leads by name, email, or course..."
+      className="pl-10 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+    />
+  </div>
+
+  {/* Status Dropdown */}
+  <div className="flex items-center gap-2">
+    <Select value={status} onValueChange={setStatus}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select Status" />
+      </SelectTrigger>
+      <SelectContent className="w-[80px]">
+        <SelectItem value="all" className="cursor-pointer">All</SelectItem>
+        <SelectItem value="new" className="cursor-pointer">New</SelectItem>
+        <SelectItem value="interested" className="cursor-pointer">Interested</SelectItem>
+        <SelectItem value="contacted" className="cursor-pointer">Contacted</SelectItem>
+        <SelectItem value="demo" className="cursor-pointer">demo</SelectItem>
+        <SelectItem value="inDemo" className="cursor-pointer">InDemo</SelectItem>
+        <SelectItem value="lost" className="cursor-pointer">Lost</SelectItem>
+      </SelectContent>
+    </Select>
+
+    {/* Date Picker */}
+    <div>
+      <input
+        type="month" // or "date" if you want exact date
+        className="border border-slate-200 cursor-pointer rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-slate-400"
+        value={currentMonth} // state for selected month
+        onChange={(e) => setCurrentMonth(e.target.value)}
+        ref={dateRef}
+        onClick={()=>{if(dateRef.current?.showPicker){dateRef.current.showPicker()}}}
+      />
+    </div>
+  </div>
+</div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -275,7 +297,7 @@ const LeadList: React.FC = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
-                              {(lead?.status !== "lost" && lead?.status !== "lost") &&<><DropdownMenuItem className="cursor-pointer" onClick={() => { setStatusData({ id: lead._id, status: lead.status }); setIsStatusDialogOpen(true) }}>
+                              {(lead?.status !== "lost") &&<><DropdownMenuItem className="cursor-pointer" onClick={() => { setStatusData({ id: lead._id, status: lead.status }); setIsStatusDialogOpen(true) }}>
                                 <CheckCircle className="mr-2 h-4 w-4" /> Update Status
                               </DropdownMenuItem>
                                 <DropdownMenuItem className="cursor-pointer" onClick={() => { setPaymentData(lead); setIsAddPaymentDialogOpen(true) }}>
@@ -311,42 +333,79 @@ const LeadList: React.FC = () => {
           </CardContent>
         </Card>
         <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Update Lead Status</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleUpdateLeadStatus}>
-              <Label htmlFor="status">Status</Label>
-              <Select value={statusData?.status} onValueChange={(value) => { setStatusData({ ...statusData, status: value }) }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOrder.map((statusValue) => {
-                    const optionIndex = statusOrder.indexOf(statusValue);
-                    const isDisabled = optionIndex < currentStatusIndex;
+  <DialogContent className="sm:max-w-md w-full">
+    <DialogHeader>
+      <DialogTitle>Update Lead Status</DialogTitle>
+    </DialogHeader>
 
-                    return (
+    <form onSubmit={handleUpdateLeadStatus}>
+      <Label htmlFor="status" className="mb-1 block text-sm font-medium text-gray-700">
+        Status
+      </Label>
+
+      <Select
+        value={statusData?.status}
+        onValueChange={(value) => setStatusData({ ...statusData, status: value })}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Select a status" />
+        </SelectTrigger>
+
+        <SelectContent>
+          {statusOrder.map((statusValue) => {
+            const optionIndex = statusOrder.indexOf(statusValue);
+            const isDisabled = optionIndex < currentStatusIndex;
+
+            return (
+              <div
+                key={statusValue}
+                onMouseEnter={() => {
+                  if (statusValue === "contacted") setShowExtra(true);
+                }}
+                onMouseLeave={() => {
+                  if (statusValue === "contacted") setShowExtra(false);
+                }}
+              >
+                <SelectItem
+                  value={statusValue}
+                  disabled={isDisabled}
+                  className="cursor-pointer"
+                >
+                  {statusValue.charAt(0).toUpperCase() + statusValue.slice(1)}
+                </SelectItem>
+
+                {/* Extra options on hover/click */}
+                {statusValue === "contacted" && showExtra && (
+                  <div className="ml-4 flex flex-col">
+                    {extraStatuses.map((extra) => (
                       <SelectItem
-                        key={statusValue}
-                        value={statusValue}
-                        disabled={isDisabled}
-                        className="cursor-pointer"
+                        key={extra}
+                        value={extra}
+                        className="text-sm cursor-pointer text-gray-700 dark:text-gray-200"
                       >
-                        {statusValue.charAt(0).toUpperCase() + statusValue.slice(1)}
+                        {extra.charAt(0).toUpperCase() + extra.slice(1)}
                       </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              <div className="flex justify-end mt-6">
-                <Button type="submit">
-                  {isStatusLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Update Status"}
-                </Button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+            );
+          })}
+        </SelectContent>
+      </Select>
+
+      <div className="flex justify-end mt-6">
+        <Button type="submit" disabled={isStatusLoading}>
+          {isStatusLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            "Update Status"
+          )}
+        </Button>
+      </div>
+    </form>
+  </DialogContent>
+</Dialog>
 
       </div>
     </>

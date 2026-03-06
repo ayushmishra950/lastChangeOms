@@ -42,9 +42,10 @@ const leadSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["new", "interested", "contacted", "enrolled", "lost"],
+            enum: ["new", "interested", "contacted", "enrolled", "lost", "demo", "inDemo"],
             default: "new"
-        }
+        },
+
     },
     { timestamps: true } // createdAt and updatedAt
 );

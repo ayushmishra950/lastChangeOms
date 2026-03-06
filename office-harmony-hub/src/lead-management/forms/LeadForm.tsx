@@ -9,25 +9,27 @@ import { useEffect, useState } from "react";
 import { getAllProduct, addLead, updateLead } from "@/services/Service";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getProductList } from "@/redux-toolkit/slice/lead-portal/productSlice";
+import {getCurrentDate, formatDateFromInput} from "@/services/allFunctions";
 
 
 const LeadForm = ({ isOpen, onOpenChange, initialData, setLeadListRefresh }) => {
     const { toast } = useToast();
     const isEdit = !!initialData;
     const [loading, setLoading] = useState(false);
-    const [courseList, setCourseList] = useState([]);
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         phone: "",
         product: "",
         source: "",
-        price: ""
+        price: "",
+        durationValue: "",
+        durationUnit: "Months",
     });
     const [productListRefresh, setProductListRefresh] = useState(false);
     // const [productList, setProductList] = useState([]);
     const dispatch = useAppDispatch();
-    const productList = useAppSelector((state)=> state?.product?.productList)
+    const productList = useAppSelector((state) => state?.product?.productList)
 
     useEffect(() => {
 
@@ -38,13 +40,15 @@ const LeadForm = ({ isOpen, onOpenChange, initialData, setLeadListRefresh }) => 
                 phone: initialData?.phone,
                 product: initialData?.product?._id,
                 source: initialData?.source,
-                price: initialData?.price
+                price: initialData?.price,
+                durationValue: initialData?.duration?.value?.toString() || "",
+                durationUnit: initialData?.duration?.unit || "Months",
             });
         }
     }, [initialData]);
 
     const resetForm = () => {
-        setFormData({ name: "", email: "", phone: "", product: "", source: "", price: "" })
+        setFormData({ name: "", email: "", phone: "", product: "", durationValue: "", durationUnit: "Months", source: "", price: ""})
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +75,7 @@ const LeadForm = ({ isOpen, onOpenChange, initialData, setLeadListRefresh }) => 
     const handleSelectProduct = async (value) => {
         console.log(value)
         const product = productList?.find((product) => product._id === value);
-        setFormData({ ...formData, product: value, price: product?.price });
+        setFormData({ ...formData, product: value, price: product?.price, durationValue:product?.duration?.value, durationUnit:product?.duration?.unit });
     }
 
     const handleGetProductList = async () => {
@@ -105,8 +109,10 @@ const LeadForm = ({ isOpen, onOpenChange, initialData, setLeadListRefresh }) => 
                                 <Label className="text-xs">Phone</Label>
                                 <Input type="text" value={formData?.phone} maxLength={10} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="Enter Phone Number" className="placeholder:text-xs" />
                             </div>
-                            <div className="flex-1 ml-2">
-                                <Label className="text-xs">Product</Label>
+                        </div>
+                        <div className="flex">
+                            <div className="flex-1">
+                                <Label className="text-xs">Course</Label>
                                 <Select value={formData?.product} onValueChange={(value) => { handleSelectProduct(value) }}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select Product" />
@@ -120,19 +126,48 @@ const LeadForm = ({ isOpen, onOpenChange, initialData, setLeadListRefresh }) => 
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <div className="flex-1 gap-1 ml-3">
+                                <Label className="text-xs">
+                                    Course Duration*
+                                </Label>
+
+                                <div className="flex gap-2">
+                                    <Input
+                                        disabled
+                                        type="number"
+                                        placeholder="Duration"
+                                        value={formData.durationValue}
+                                        onChange={(e) => setFormData({ ...formData, durationValue: e.target.value, })}
+                                        required
+                                        min="1"
+                                        className="placeholder:text-xs"
+                                    />
+
+                                    <select
+                                        disabled
+                                        value={formData.durationUnit}
+                                        onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value, })
+                                        }
+                                        className="border rounded-md px-2 text-sm" >
+                                        <option value="Days">Days</option>
+                                        <option value="Weeks">Weeks</option>
+                                        <option value="Months">Months</option>
+                                        <option value="Years">Years</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div className="flex">
                             <div className="flex-1">
-                                <Label className="text-xs">Price(₹)</Label>
+                                <Label className="text-xs">Course Price(₹)</Label>
                                 <Input type="number" value={formData?.price} placeholder="Enter Price" className="placeholder:text-xs" disabled />
                                 {!formData?.product && <p className="text-xs text-muted-foreground">Please select a course to auto-fill the price</p>}
                             </div>
-                            <div className="flex-1 ml-2">
+                              <div className="flex-1 ml-2">
                                 <Label className="text-xs">Source(Optional)</Label>
                                 <Input type="text" value={formData?.source} onChange={(e) => setFormData({ ...formData, source: e.target.value })} placeholder="Enter Source" className="placeholder:text-xs" />
                             </div>
                         </div>
-
 
                         {/* <Label>Status</Label>
                         <Input /> */}

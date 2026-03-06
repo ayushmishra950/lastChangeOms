@@ -1181,9 +1181,9 @@ export const addLead = async (obj: any) => {
 }
 
 
-export const getAllLead = async () => {
+export const getAllLead = async (currentMonth) => {
   const res = await axios.get(
-    `${import.meta.env.VITE_API_URL}/api/lead/get`
+    `${import.meta.env.VITE_API_URL}/api/lead/get`,{params:{currentMonth:currentMonth}}
   );
 
   return res;

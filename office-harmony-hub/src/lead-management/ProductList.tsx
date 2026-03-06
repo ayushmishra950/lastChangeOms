@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Search, Filter, UserPlus, ArrowUpDown, Trash2, Edit } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Filter, UserPlus, ArrowUpDown, Trash2, Edit, Eye } from "lucide-react";
 import ProductForm from "./forms/ProductForm";
 import { getAllProduct, deleteProduct } from "@/services/Service";
 import { formatDate } from "@/services/allFunctions";
@@ -13,6 +13,7 @@ import DeleteCard from "@/components/cards/DeleteCard";
 import { Helmet } from "react-helmet-async";
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import { getProductList } from "@/redux-toolkit/slice/lead-portal/productSlice";
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetOverlay, SheetPortal, SheetTitle, SheetTrigger,} from "@/components/ui/sheet";
 
 
 const ProductList: React.FC = () => {
@@ -24,6 +25,8 @@ const ProductList: React.FC = () => {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedProductId, setSelectedProductId] = useState(null);
+    const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
+    const [selectCourse, setSelectedCourse] = useState(null);
     const dispatch = useAppDispatch();
     const productList = useAppSelector((state)=> state?.product?.productList)
 
@@ -91,7 +94,7 @@ const ProductList: React.FC = () => {
                         onClick={() => { setInitialData(null); setIsAddDialogOpen(true) }}
                         className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all"
                     >
-                        <Plus className="mr-2 h-4 w-4" /> Add New Product
+                        <Plus className="mr-2 h-4 w-4" /> Add New Course
                     </Button>
                 </div>
 
@@ -122,8 +125,9 @@ const ProductList: React.FC = () => {
                             <Table>
                                 <TableHeader className="bg-slate-50">
                                     <TableRow>
-                                        <TableHead className="font-semibold text-slate-700">Product Name</TableHead>
-                                        <TableHead className="font-semibold text-slate-700">Product Price</TableHead>
+                                        <TableHead className="font-semibold text-slate-700">Course Name</TableHead>
+                                        <TableHead className="font-semibold text-slate-700">Course Price</TableHead>
+                                        <TableHead className="font-semibold text-slate-700">Duration</TableHead>
                                         <TableHead className="font-semibold text-slate-700">Created At</TableHead>
                                         <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>
                                     </TableRow>
@@ -131,7 +135,7 @@ const ProductList: React.FC = () => {
                                 <TableBody>
                                     {filteredProductList.length > 0 ? (
                                         filteredProductList.map((product) => (
-                                            <TableRow key={product._id} className="hover:bg-slate-50/80 transition-colors">
+                                            <TableRow key={product._id} className="hover:bg-slate-50/80 transition-colors cursor-pointer" onClick={() => {setSelectedCourse(product); setIsProductDialogOpen(true) }}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
                                                         <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
@@ -145,6 +149,9 @@ const ProductList: React.FC = () => {
                                                 <TableCell>
                                                     ₹ {product.price}
                                                 </TableCell>
+                                                 <TableCell>
+                                                    {(product?.duration?.value && product?.duration?.unit)? `${product?.duration?.value} ${product?.duration?.unit}` : "-"}
+                                                </TableCell>
                                                 <TableCell>
                                                     {formatDate(product.createdAt)}
                                                 </TableCell>
@@ -156,14 +163,17 @@ const ProductList: React.FC = () => {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end" className="w-40">
-                                                            <DropdownMenuItem onClick={() => { setInitialData(product); setIsAddDialogOpen(true) }} className="cursor-pointer">
-                                                                <Edit className="mr-2 h-4 w-4" /> Edit Product
+                                                         <DropdownMenuItem onClick={(e) => {e.stopPropagation(); setSelectedCourse(product); setIsProductDialogOpen(true) }} className="cursor-pointer">
+                                                                <Eye className="mr-2 h-4 w-4" /> View Course
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={(e) => {e.stopPropagation(); setInitialData(product); setIsAddDialogOpen(true) }} className="cursor-pointer">
+                                                                <Edit className="mr-2 h-4 w-4" /> Edit Course
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem
                                                                 className="text-red-600 focus:text-red-600 cursor-pointer"
-                                                                onClick={() => { setSelectedProductId(product._id); setIsDeleteDialogOpen(true) }}
+                                                                onClick={(e) => {e.stopPropagation(); setSelectedProductId(product._id); setIsDeleteDialogOpen(true) }}
                                                             >
-                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete Product
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete Course
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -185,6 +195,80 @@ const ProductList: React.FC = () => {
                         </div>
                     </CardContent>
                 </Card>
+              <Sheet open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
+  <SheetContent className="sm:max-w-md w-full p-6">
+    <SheetHeader>
+      <SheetTitle className="text-lg font-semibold">Course Detail</SheetTitle>
+      <SheetDescription className="text-sm text-gray-500">
+        Detailed information about the selected course
+      </SheetDescription>
+    </SheetHeader>
+
+    <div className="flex flex-col gap-5 mt-6">
+
+      {/* Course Name */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+        <p className="text-xs text-gray-400">Course Name</p>
+        <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+          {selectCourse?.name || "-"}
+        </p>
+      </div>
+
+      {/* Description */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+        <p className="text-xs text-gray-400">Description</p>
+        <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+          {selectCourse?.description || "-"}
+        </p>
+      </div>
+
+      {/* Price */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+        <p className="text-xs text-gray-400">Price</p>
+        <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+          {selectCourse?.price !== undefined
+            ? `₹${selectCourse.price}`
+            : "-"}
+        </p>
+      </div>
+
+      {/* Duration */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+        <p className="text-xs text-gray-400">Duration</p>
+        <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+          {selectCourse?.duration
+            ? `${selectCourse.duration.value} ${selectCourse.duration.unit}`
+            : "-"}
+        </p>
+      </div>
+
+      {/* Modules */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm max-h-[200px] overflow-y-auto">
+        <p className="text-xs text-gray-400">Modules</p>
+
+        {selectCourse?.modules?.length > 0 ? (
+          <div className="mt-1 max-h-40 overflow-y-auto">
+            <ul className="list-disc ml-5 space-y-1">
+              {selectCourse.modules.map((mod: string, idx: number) => (
+                <li
+                  key={idx}
+                  className="text-sm text-gray-900 dark:text-white"
+                >
+                  {mod}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+            -
+          </p>
+        )}
+      </div>
+
+    </div>
+  </SheetContent>
+</Sheet>
             </div>
         </>
     );

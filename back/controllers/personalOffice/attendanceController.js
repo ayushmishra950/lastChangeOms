@@ -312,7 +312,7 @@ const clockIn = async (req, res) => {
 
     await sendNotification({
       createdBy: userId,
-      userId: company?.admins[0] || "69735b496f1896b3b1ceff46",
+      userId: company?.admins[0],
       userModel: "Employee",
       companyId,
       message: `Good Morning Login By ${user?.fullName}`,
@@ -400,7 +400,7 @@ const clockOut = async (req, res) => {
 
     await sendNotification({
       createdBy: userId,
-      userId: company?.admins[0] || "69735b496f1896b3b1ceff46",
+      userId: company?.admins[0],
       userModel: "Employee",
       companyId,
       message: `Good Evening Logout By ${user?.fullName}`,
