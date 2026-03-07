@@ -21,6 +21,7 @@ const payRollRoutes = require("./routes/payRollRoute.js");
 const companyRoutes = require("./routes/companyRoutes.js");
 const taskRoutes = require("./routes/taskRoutes.js");
 const authMiddleware = require("./middleware/authMiddleware.js");
+// const whatsapp = require("./utils/whatsappFunction.js");
 
 // job-portal k liye
 const roleRoutes = require("./routes/job-portal-route/roleRoute.js");
@@ -37,7 +38,8 @@ const leadRoutes = require("./routes/lead-portal-route/leadRoute.js");
 const swaggerSpec = require("./swagger");
 const { initSocket } = require("./socketHelpers.js"); // ✅ import only initSocket
 const cookieParser = require("cookie-parser")
-
+const cron = require('node-cron');
+const axios = require('axios');
 // Load env
 dotenv.config();
 
@@ -89,6 +91,14 @@ app.use("/api/lead", leadRoutes)
 // Test route
 app.get("/", (req, res) => {
   res.send("OMS Admin System is running!");
+});
+
+// Node-cron heartbeat: every 10 minutes
+
+cron.schedule('*/10 * * * *', () => {
+  axios.get('https://lastchangeoms-backend.onrender.com/') // aapka deployed URL
+    .then(() => console.log('Heartbeat sent to root route'))
+    .catch(err => console.error('Heartbeat error:', err));
 });
 
 // MongoDB test route

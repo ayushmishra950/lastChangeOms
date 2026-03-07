@@ -19,6 +19,7 @@ import PaymentForm from "@/lead-management/forms/PaymentForm";
 import {getLeadList} from "@/redux-toolkit/slice/lead-portal/leadSlice"
 import { useAppDispatch, useAppSelector } from "@/redux-toolkit/hooks/hook";
 import {getCurrentMonthAndYear, formatDateFromInput} from "@/services/allFunctions";
+import WhatsAppChatDialog from "@/lead-management/MessageCard";
 
 export type LeadStatus = "new" | "contacted" | "interested" | "enrolled" | "lost";
 
@@ -65,6 +66,8 @@ const LeadList: React.FC = () => {
 const [showExtra, setShowExtra] = useState(false); // for hover/click on contacted
 const [currentMonth, setCurrentMonth] = useState(getCurrentMonthAndYear());
 const dateRef = useRef(null);
+    const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+
 
   const dispatch = useAppDispatch();
   const leadList = useAppSelector((state)=> state?.lead?.leadList)
@@ -156,6 +159,7 @@ const dateRef = useRef(null);
 
   return (
     <>
+     <WhatsAppChatDialog isOpen={messageDialogOpen} onOpenChange={setMessageDialogOpen} />
     <PaymentForm
     isOpen={isAddPaymentDialogOpen}
         onOpenChange={setIsAddPaymentDialogOpen}
@@ -305,6 +309,9 @@ const dateRef = useRef(null);
                               </DropdownMenuItem></>}
                               <DropdownMenuItem className="cursor-pointer" onClick={() => { setInitialData(lead); setIsAddDialogOpen(true) }}>
                                 <Edit className="mr-2 h-4 w-4" /> Edit Lead
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => {setMessageDialogOpen(true) }}>
+                                <Edit className="mr-2 h-4 w-4" /> Message
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600 focus:text-red-600 cursor-pointer"

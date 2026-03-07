@@ -1,56 +1,69 @@
 const Lead = require("../../models/lead-portal/lead");
 const Payment = require("../../models/lead-portal/Payment");
+const {createLead} = require("../../service/leadService");
 /**     
  * @desc    Create Lead
  * @route   POST /api/leads
- */const addLead = async (req, res) => {
-    try {
-        const { name, email, phone, product, price, source } = req.body;
-        console.log(req.body);
+//  */
+// const addLead = async (req, res) => {
+//     try {
+//         const { name, email, phone, product, price, source } = req.body;
+//         console.log(req.body);
 
-        if (!name || !email || !phone || !product || !price) {
-            return res.status(400).json({
-                success: false,
-                message: "All required fields must be provided",
-            });
-        }
+//         if (!name || !email || !phone || !product || !price) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "All required fields must be provided",
+//             });
+//         }
 
-        // 🔎 Check if user already purchased this product
-        const existingLead = await Lead.findOne({
-            email: email.toLowerCase(),
-            product: product,
+//         // 🔎 Check if user already purchased this product
+//         const existingLead = await Lead.findOne({
+//             email: email.toLowerCase(),
+//             product: product,
 
-        });
+//         });
 
-        if (existingLead) {
-            return res.status(400).json({
-                success: false,
-                message: "This user has already purchased this product.",
-            });
-        }
+//         if (existingLead) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "This user has already purchased this product.",
+//             });
+//         }
 
-        const lead = await Lead.create({
-            name,
-            email: email.toLowerCase(),
-            phone,
-            product,
-            price,
-            source: source,
-            status: "new"
-        });
+//         const lead = await Lead.create({
+//             name,
+//             email: email.toLowerCase(),
+//             phone,
+//             product,
+//             price,
+//             source: source,
+//             status: "new"
+//         });
 
-        res.status(201).json({
-            success: true,
-            message: "Lead created successfully",
-            data: lead,
-        });
+//         res.status(201).json({
+//             success: true,
+//             message: "Lead created successfully",
+//             data: lead,
+//         });
 
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
+//     } catch (error) {
+//         res.status(500).json({
+//             success: false,
+//             message: error.message,
+//         });
+//     }
+// };
+
+
+const addLead = async (req, res) => {
+   const result = await createLead(req.body);
+
+    if (!result.success) {
+        return res.status(400).json(result);
     }
+
+    res.status(201).json(result);
 };
 /**
  * @desc    Get All Leads

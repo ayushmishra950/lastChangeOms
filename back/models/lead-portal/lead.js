@@ -5,24 +5,20 @@ const leadSchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: true,
             trim: true
         },
         email: {
             type: String,
-            required: true,
             lowercase: true,
             trim: true
         },
         phone: {
             type: String,
-            required: true,
             trim: true
         },
         product: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Product",
-            required: true
         },
         payment: {
             type: mongoose.Schema.Types.ObjectId,
@@ -32,7 +28,6 @@ const leadSchema = new mongoose.Schema(
 
         price: {
             type: Number,
-            required: true,
             min: 0
         },
         source: {
